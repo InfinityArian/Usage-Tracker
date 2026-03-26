@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="UsageTracker"/>
+<title>Usage Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161a23;
+    --surface2: #1e2330;
+    --border: #2a3045;
+    --accent-e: #f5c842;
+    --accent-w: #42b8f5;
+    --text: #e8eaf0;
+    --muted: #6b7490;
+    --danger: #f56242;
+    --green: #42f587;
+    --radius: 16px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100dvh; overflow-x: hidden; }
+  .header { padding: calc(var(--safe-top) + 18px) 20px 16px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .header-title { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text); }
+  .header-date { font-size: 12px; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .tabs { display: flex; padding: 12px 20px; gap: 8px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex-shrink: 0; padding: 8px 18px; border-radius: 100px; font-size: 13px; font-weight: 500; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.2s; }
+  .tab.active-e { background: var(--accent-e); color: #0d0f14; border-color: var(--accent-e); font-weight: 700; }
+  .tab.active-w { background: var(--accent-w); color: #0d0f14; border-color: var(--accent-w); font-weight: 700; }
+  .tab.active-d { background: var(--surface2); color: var(--text); border-color: var(--border); }
+  .page { display: none; padding: 20px; padding-bottom: calc(var(--safe-bottom) + 80px); }
+  .page.active { display: block; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-family: 'Space Mono', monospace; margin-bottom: 6px; }
+  .card-value { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; line-height: 1; }
+  .card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .e-color { color: var(--accent-e); }
+  .w-color { color: var(--accent-w); }
+  .section-title { font-family: 'Space Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 12px; }
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+  .form-group input, .form-group select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; color: var(--text); font-size: 15px; font-family: 'Space Mono', monospace; outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent-e); }
+  .form-group.water input:focus { border-color: var(--accent-w); }
+  .btn { width: 100%; padding: 14px; border-radius: 12px; font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; border: none; cursor: pointer; transition: transform 0.1s, opacity 0.2s; }
+  .btn:active { transform: scale(0.97); }
+  .btn-e { background: var(--accent-e); color: #0d0f14; }
+  .btn-w { background: var(--accent-w); color: #0d0f14; }
+  .readings-list { margin-top: 24px; }
+  .reading-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .reading-date { font-size: 12px; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .reading-meter { font-size: 15px; font-weight: 600; font-family: 'Space Mono', monospace; }
+  .reading-usage { font-size: 12px; font-weight: 500; }
+  .reading-cost { font-size: 13px; font-weight: 700; color: var(--green); font-family: 'Space Mono', monospace; }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  .settings-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .settings-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .chart-container { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+  .chart-title { font-family: 'Space Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 14px; }
+  canvas { max-width: 100%; }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; padding: 10px 20px calc(var(--safe-bottom) + 10px); background: rgba(13,15,20,0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; z-index: 100; }
+  .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; color: var(--muted); font-size: 10px; font-family: 'DM Sans', sans-serif; font-weight: 500; cursor: pointer; padding: 6px 12px; border-radius: 10px; transition: color 0.2s; }
+  .nav-btn .icon { font-size: 20px; line-height: 1; }
+  .nav-btn.active-e { color: var(--accent-e); }
+  .nav-btn.active-w { color: var(--accent-w); }
+  .nav-btn.active-d { color: var(--text); }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 700; font-family: 'Space Mono', monospace; }
+  .badge-e { background: rgba(245,200,66,0.15); color: var(--accent-e); }
+  .badge-w { background: rgba(66,184,245,0.15); color: var(--accent-w); }
+  select option { background: var(--surface2); }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-title">⚡ UsageTracker</div>
+  <div class="header-date" id="headerDate"></div>
+</div>
+<div class="tabs">
+  <button class="tab active-e" onclick="showPage('elec')">⚡ Electricity</button>
+  <button class="tab" onclick="showPage('water')">💧 Water</button>
+  <button class="tab" onclick="showPage('dash')">📊 Dashboard</button>
+  <button class="tab" onclick="showPage('settings')">⚙️ Settings</button>
+</div>
+<div class="page active" id="page-elec">
+  <div class="summary-grid">
+    <div class="card"><div class="card-label">This Month</div><div class="card-value e-color" id="e-month-usage">—</div><div class="card-sub">kWh used</div></div>
+    <div class="card"><div class="card-label">Est. Cost</div><div class="card-value e-color" id="e-month-cost">—</div><div class="card-sub">this month</div></div>
+  </div>
+  <div class="section-title">Log a Reading</div>
+  <div class="form-group"><label>Date</label><input type="date" id="e-date"/></div>
+  <div class="form-group"><label>Meter Reading (kWh)</label><input type="number" inputmode="decimal" placeholder="e.g. 12345.6" id="e-reading"/></div>
+  <div class="form-group"><label>Notes (optional)</label><input type="text" placeholder="e.g. after load shedding" id="e-note"/></div>
+  <button class="btn btn-e" onclick="saveReading('elec')">+ Save Reading</button>
+  <div class="readings-list"><div class="section-title" style="margin-top:24px;">Recent Readings</div><div id="e-readings-list"></div></div>
+</div>
+<div class="page" id="page-water">
+  <div class="summary-grid">
+    <div class="card"><div class="card-label">This Month</div><div class="card-value w-color" id="w-month-usage">—</div><div class="card-sub">kL used</div></div>
+    <div class="card"><div class="card-label">Est. Cost</div><div class="card-value w-color" id="w-month-cost">—</div><div class="card-sub">this month</div></div>
+  </div>
+  <div class="section-title">Log a Reading</div>
+  <div class="form-group water"><label>Date</label><input type="date" id="w-date"/></div>
+  <div class="form-group water"><label>Meter Reading (kL)</label><input type="number" inputmode="decimal" placeholder="e.g. 456.7" id="w-reading"/></div>
+  <div class="form-group water"><label>Notes (optional)</label><input type="text" placeholder="e.g. after garden watering" id="w-note"/></div>
+  <button class="btn btn-w" onclick="saveReading('water')">+ Save Reading</button>
+  <div class="readings-list"><div class="section-title" style="margin-top:24px;">Recent Readings</div><div id="w-readings-list"></div></div>
+</div>
+<div class="page" id="page-dash">
+  <div class="summary-grid" style="margin-bottom:20px;">
+    <div class="card"><div class="card-label">Elec. MTD</div><div class="card-value e-color" id="d-e-usage">—</div><div class="card-sub" id="d-e-cost">— cost</div></div>
+    <div class="card"><div class="card-label">Water MTD</div><div class="card-value w-color" id="d-w-usage">—</div><div class="card-sub" id="d-w-cost">— cost</div></div>
+  </div>
+  <div class="chart-container"><div class="chart-title">⚡ Electricity Usage — Last 60 Days (kWh)</div><canvas id="chartElec" height="160"></canvas></div>
+  <div class="chart-container"><div class="chart-title">💧 Water Usage — Last 60 Days (kL)</div><canvas id="chartWater" height="160"></canvas></div>
+  <div class="chart-container"><div class="chart-title">💰 Monthly Cost Breakdown (R)</div><canvas id="chartCost" height="160"></canvas></div>
+</div>
+<div class="page" id="page-settings">
+  <div class="settings-card">
+    <div class="settings-title"><span class="badge badge-e">⚡</span> Electricity Tariff</div>
+    <div class="form-group"><label>Rate per kWh (R)</label><input type="number" inputmode="decimal" placeholder="e.g. 2.85" id="e-tariff" step="0.01"/></div>
+    <div class="form-group"><label>Fixed monthly charge (R)</label><input type="number" inputmode="decimal" placeholder="e.g. 85.00" id="e-fixed" step="0.01"/></div>
+  </div>
+  <div class="settings-card">
+    <div class="settings-title"><span class="badge badge-w">💧</span> Water Tariff</div>
+    <div class="form-group"><label>Rate per kL (R)</label><input type="number" inputmode="decimal" placeholder="e.g. 18.50" id="w-tariff" step="0.01"/></div>
+    <div class="form-group"><label>Fixed monthly charge (R)</label><input type="number" inputmode="decimal" placeholder="e.g. 60.00" id="w-fixed" step="0.01"/></div>
+  </div>
+  <button class="btn btn-e" onclick="saveSettings()">Save Settings</button>
+  <hr class="divider"/>
+  <button class="btn" style="background:var(--surface2);color:var(--danger);border:1px solid var(--danger);margin-top:8px;" onclick="clearData()">🗑 Clear All Data</button>
+  <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px;">All data is stored locally on your device.<br/>Add to Home Screen in Safari for the best experience.</p>
+</div>
+<div class="bottom-nav">
+  <button class="nav-btn active-e" id="nav-elec" onclick="showPage('elec')"><span class="icon">⚡</span>Electricity</button>
+  <button class="nav-btn" id="nav-water" onclick="showPage('water')"><span class="icon">💧</span>Water</button>
+  <button class="nav-btn" id="nav-dash" onclick="showPage('dash')"><span class="icon">📊</span>Dashboard</button>
+  <button class="nav-btn" id="nav-settings" onclick="showPage('settings')"><span class="icon">⚙️</span>Settings</button>
+</div>
+<script>
+let state = { elec: [], water: [], settings: { eTariff: 2.85, eFixed: 85, wTariff: 18.50, wFixed: 60 } };
+let charts = {};
+function load() { const s = localStorage.getItem('usageTrackerData'); if (s) state = JSON.parse(s); applySettings(); }
+function save() { localStorage.setItem('usageTrackerData', JSON.stringify(state)); }
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmt(d) { const x = new Date(d+'T00:00:00'); return x.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'2-digit'}); }
+function fmtR(v) { return 'R '+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.className='tab');
+  const tabs=document.querySelectorAll('.tab');
+  const map={elec:0,water:1,dash:2,settings:3};
+  const cls=id==='elec'?'active-e':id==='water'?'active-w':'active-d';
+  tabs[map[id]].classList.add(cls);
+  document.querySelectorAll('.nav-btn').forEach(b=>b.className='nav-btn');
+  document.getElementById('nav-'+(id==='dash'?'dash':id==='settings'?'settings':id)).className='nav-btn '+cls;
+  if(id==='dash') renderDashboard();
+}
+function saveReading(type) {
+  const dateEl=document.getElementById(type==='elec'?'e-date':'w-date');
+  const readEl=document.getElementById(type==='elec'?'e-reading':'w-reading');
+  const noteEl=document.getElementById(type==='elec'?'e-note':'w-note');
+  const date=dateEl.value, reading=parseFloat(readEl.value), note=noteEl.value.trim();
+  if(!date||isNaN(reading)){alert('Please enter both a date and a meter reading.');return;}
+  const arr=type==='elec'?state.elec:state.water;
+  arr.push({date,reading,note});
+  arr.sort((a,b)=>a.date.localeCompare(b.date));
+  save(); readEl.value=''; noteEl.value='';
+  renderReadings(type); updateSummary(type);
+}
+function renderReadings(type) {
+  const arr=type==='elec'?state.elec:state.water;
+  const el=document.getElementById(type==='elec'?'e-readings-list':'w-readings-list');
+  const unit=type==='elec'?'kWh':'kL';
+  const color=type==='elec'?'e-color':'w-color';
+  const s=state.settings;
+  if(arr.length===0){el.innerHTML=`<div class="empty-state"><div class="empty-icon">${type==='elec'?'⚡':'💧'}</div>No readings yet.<br/>Add your first meter reading above.</div>`;return;}
+  const recent=[...arr].reverse().slice(0,15);
+  el.innerHTML=recent.map((r,i)=>{
+    const origIdx=arr.length-1-i;
+    const prev=arr[origIdx-1];
+    const usage=prev?(r.reading-prev.reading):null;
+    const tariff=type==='elec'?s.eTariff:s.wTariff;
+    const cost=usage!==null?usage*tariff:null;
+    return `<div class="reading-item"><div><div class="reading-date">${fmt(r.date)}</div><div class="reading-meter ${color}">${r.reading.toLocaleString('en-ZA',{minimumFractionDigits:1})} ${unit}</div>${usage!==null?`<div class="reading-usage ${color}" style="font-size:12px;margin-top:2px;">▲ ${usage.toFixed(1)} ${unit}</div>`:'<div class="reading-usage" style="color:var(--muted);font-size:11px;">First reading</div>'}${r.note?`<div style="font-size:11px;color:var(--muted);margin-top:2px;">${r.note}</div>`:''}</div><div style="text-align:right;">${cost!==null?`<div class="reading-cost">${fmtR(cost)}</div>`:''}<button onclick="deleteReading('${type}',${origIdx})" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px;margin-top:4px;">×</button></div></div>`;
+  }).join('');
+}
+function deleteReading(type,idx){if(!confirm('Delete this reading?'))return;const arr=type==='elec'?state.elec:state.water;arr.splice(idx,1);save();renderReadings(type);updateSummary(type);}
+function updateSummary(type){
+  const arr=type==='elec'?state.elec:state.water;
+  const s=state.settings;
+  const now=new Date();
+  const ms=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const allSorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));
+  const firstIdx=allSorted.findIndex(r=>r.date.startsWith(ms));
+  let usage=0;
+  if(firstIdx>0){const prev=allSorted[firstIdx-1];const last=allSorted.filter(r=>r.date.startsWith(ms)).pop();if(prev&&last)usage=last.reading-prev.reading;}
+  const tariff=type==='elec'?s.eTariff:s.wTariff;
+  const fixed=type==='elec'?s.eFixed:s.wFixed;
+  const cost=usage>0?usage*tariff+fixed:fixed;
+  if(type==='elec'){document.getElementById('e-month-usage').textContent=usage>0?usage.toFixed(1):'—';document.getElementById('e-month-cost').textContent=usage>0?fmtR(cost):'—';}
+  else{document.getElementById('w-month-usage').textContent=usage>0?usage.toFixed(1):'—';document.getElementById('w-month-cost').textContent=usage>0?fmtR(cost):'—';}
+}
+function getMonthlyUsage(arr){if(arr.length<2)return[];const sorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));const months={};for(let i=1;i<sorted.length;i++){const usage=sorted[i].reading-sorted[i-1].reading;if(usage<0)continue;const m=sorted[i].date.slice(0,7);months[m]=(months[m]||0)+usage;}return Object.entries(months).sort((a,b)=>a[0].localeCompare(b[0]));}
+function getDailyUsage(arr,days=30){if(arr.length<2)return[];const sorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));const cutoff=new Date();cutoff.setDate(cutoff.getDate()-days);const result=[];for(let i=1;i<sorted.length;i++){const d=new Date(sorted[i].date+'T00:00:00');if(d<cutoff)continue;const usage=sorted[i].reading-sorted[i-1].reading;if(usage<0)continue;result.push({date:sorted[i].date,usage});}return result;}
+function fmtMonth(m){const[y,mo]=m.split('-');return new Date(parseInt(y),parseInt(mo)-1,1).toLocaleString('en-ZA',{month:'short',year:'2-digit'});}
+function renderDashboard(){
+  const s=state.settings;
+  const now=new Date();
+  const ms=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const calcMTD=(arr,tariff,fixed)=>{const allSorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));const firstIdx=allSorted.findIndex(r=>r.date.startsWith(ms));if(firstIdx<=0)return{usage:0,cost:0};const prev=allSorted[firstIdx-1];const last=allSorted.filter(r=>r.date.startsWith(ms)).pop();const usage=last?last.reading-prev.reading:0;return{usage:Math.max(0,usage),cost:usage>0?usage*tariff+fixed:0};};
+  const eM=calcMTD(state.elec,s.eTariff,s.eFixed);
+  const wM=calcMTD(state.water,s.wTariff,s.wFixed);
+  document.getElementById('d-e-usage').textContent=eM.usage>0?eM.usage.toFixed(1)+' kWh':'—';
+  document.getElementById('d-e-cost').textContent=eM.cost>0?fmtR(eM.cost):'no data';
+  document.getElementById('d-w-usage').textContent=wM.usage>0?wM.usage.toFixed(1)+' kL':'—';
+  document.getElementById('d-w-cost').textContent=wM.cost>0?fmtR(wM.cost):'no data';
+  const cd={responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9}}},y:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9}},beginAtZero:true}}};
+  const eDailyData=getDailyUsage(state.elec,60);
+  if(charts.elec)charts.elec.destroy();
+  charts.elec=new Chart(document.getElementById('chartElec'),{type:'bar',data:{labels:eDailyData.map(d=>fmt(d.date)),datasets:[{data:eDailyData.map(d=>d.usage.toFixed(2)),backgroundColor:'rgba(245,200,66,0.7)',borderRadius:4}]},options:{...cd}});
+  const wDailyData=getDailyUsage(state.water,60);
+  if(charts.water)charts.water.destroy();
+  charts.water=new Chart(document.getElementById('chartWater'),{type:'bar',data:{labels:wDailyData.map(d=>fmt(d.date)),datasets:[{data:wDailyData.map(d=>d.usage.toFixed(3)),backgroundColor:'rgba(66,184,245,0.7)',borderRadius:4}]},options:{...cd}});
+  const eMonthly=getMonthlyUsage(state.elec);
+  const wMonthly=getMonthlyUsage(state.water);
+  const allMonths=[...new Set([...eMonthly.map(m=>m[0]),...wMonthly.map(m=>m[0])])].sort();
+  const eMap=Object.fromEntries(eMonthly);
+  const wMap=Object.fromEntries(wMonthly);
+  if(charts.cost)charts.cost.destroy();
+  charts.cost=new Chart(document.getElementById('chartCost'),{type:'bar',data:{labels:allMonths.map(fmtMonth),datasets:[{label:'Electricity',data:allMonths.map(m=>(((eMap[m]||0)*s.eTariff)+s.eFixed).toFixed(2)),backgroundColor:'rgba(245,200,66,0.7)',borderRadius:4},{label:'Water',data:allMonths.map(m=>(((wMap[m]||0)*s.wTariff)+s.wFixed).toFixed(2)),backgroundColor:'rgba(66,184,245,0.7)',borderRadius:4}]},options:{responsive:true,plugins:{legend:{labels:{color:'#6b7490',font:{family:'Space Mono',size:9}}}},scales:{x:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9}}},y:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9},callback:v=>'R'+v},beginAtZero:true}}}});
+}
+function applySettings(){const s=state.settings;document.getElementById('e-tariff').value=s.eTariff;document.getElementById('e-fixed').value=s.eFixed;document.getElementById('w-tariff').value=s.wTariff;document.getElementById('w-fixed').value=s.wFixed;}
+function saveSettings(){const et=parseFloat(document.getElementById('e-tariff').value),ef=parseFloat(document.getElementById('e-fixed').value),wt=parseFloat(document.getElementById('w-tariff').value),wf=parseFloat(document.getElementById('w-fixed').value);if(isNaN(et)||isNaN(ef)||isNaN(wt)||isNaN(wf)){alert('Please fill in all tariff fields.');return;}state.settings={eTariff:et,eFixed:ef,wTariff:wt,wFixed:wf};save();updateSummary('elec');updateSummary('water');alert('✅ Settings saved!');}
+function clearData(){if(confirm('Delete ALL readings? This cannot be undone.')){state.elec=[];state.water=[];save();renderReadings('elec');renderReadings('water');updateSummary('elec');updateSummary('water');alert('Data cleared.');}}
+document.addEventListener('DOMContentLoaded',()=>{load();const t=today();document.getElementById('e-date').value=t;document.getElementById('w-date').value=t;document.getElementById('headerDate').textContent=new Date().toLocaleDateString('en-ZA',{weekday:'short',day:'numeric',month:'short'});renderReadings('elec');renderReadings('water');updateSummary('elec');updateSummary('water');});
+</script>
+</body>
+</html>
