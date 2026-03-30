@@ -118,7 +118,7 @@
 <!-- ELECTRICITY -->
 <div class="page active" id="page-elec">
   <div class="summary-grid">
-    <div class="card"><div class="card-label">This Month</div><div class="card-value e-color" id="e-month-usage">—</div><div class="card-sub">kWh used</div></div>
+    <div class="card"><div class="card-label">This Month</div><div class="card-value e-color" id="e-month-usage">—</div><div class="card-sub">kWh used this month</div></div>
     <div class="card"><div class="card-label">Est. Cost</div><div class="card-value e-color" id="e-month-cost">—</div><div class="card-sub">this month</div></div>
   </div>
   <div class="section-title">Log a Reading</div>
@@ -135,7 +135,7 @@
 <!-- WATER -->
 <div class="page" id="page-water">
   <div class="summary-grid">
-    <div class="card"><div class="card-label">This Month</div><div class="card-value w-color" id="w-month-usage">—</div><div class="card-sub">kL used</div></div>
+    <div class="card"><div class="card-label">This Month</div><div class="card-value w-color" id="w-month-usage">—</div><div class="card-sub">kL used this month</div></div>
     <div class="card"><div class="card-label">Est. Cost</div><div class="card-value w-color" id="w-month-cost">—</div><div class="card-sub">this month</div></div>
   </div>
   <div class="section-title">Log a Reading</div>
@@ -226,7 +226,7 @@ let state = {
 };
 let charts = {};
 
-function parseNum(val) { return parseFloat(String(val).replace(',','.')); }
+function parseNum(val) { return parseFloat(String(val).trim().replace(/,/g,'.')); }
 
 function load() {
   const s = localStorage.getItem('usageTrackerV2');
@@ -267,7 +267,7 @@ function saveReading(type) {
   if(!date||isNaN(reading)){alert('Please enter a date and meter reading.');return;}
   const arr=isE?state.elec:state.water;
   arr.push({date,time,reading,note});
-  arr.sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')));
+  arr.sort((a,b)=>((a.date+' '+(a.time||'00:00'))).localeCompare((b.date+' '+(b.time||'00:00'))));
   save();
   document.getElementById(isE?'e-reading':'w-reading').value='';
   document.getElementById(isE?'e-note':'w-note').value='';
@@ -287,14 +287,14 @@ function renderReadings(type) {
   el.innerHTML=recent.map((r,i)=>{
     const origIdx=arr.length-1-i;
     const prev=arr[origIdx-1];
-    const usage=prev?r.reading-prev.reading:null;
+    const usage=prev?prev.reading-r.reading:null;
     const tariff=isE?s.eTariff:s.wTariff;
     const cost=usage!==null?usage*tariff:null;
     return `<div class="reading-item">
       <div>
         <div class="reading-datetime">${fmtDateTime(r.date,r.time)}</div>
-        <div class="reading-meter ${color}">${r.reading.toLocaleString('en-ZA',{minimumFractionDigits:1})} ${unit}</div>
-        ${usage!==null?`<div style="font-size:12px;color:var(--${accentVar});margin-top:2px;">▲ ${usage.toFixed(1)} ${unit}</div>`:'<div style="font-size:11px;color:var(--muted);">First reading</div>'}
+        <div class="reading-meter ${color}">${r.reading.toLocaleString('en-ZA',{minimumFractionDigits:1})} ${unit} left</div>
+        ${usage!==null?`<div style="font-size:12px;color:var(--${accentVar});margin-top:2px;">▼ ${Math.abs(usage).toFixed(1)} ${unit} used</div>`:'<div style="font-size:11px;color:var(--muted);">First reading</div>'}
         ${r.note?`<div style="font-size:11px;color:var(--muted);margin-top:2px;">${r.note}</div>`:''}
       </div>
       <div style="text-align:right;">
@@ -319,7 +319,7 @@ function updateSummary(type) {
   const sorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));
   const fi=sorted.findIndex(r=>r.date.startsWith(ms));
   let usage=0;
-  if(fi>0){const last=sorted.filter(r=>r.date.startsWith(ms)).pop();if(last)usage=Math.max(0,last.reading-sorted[fi-1].reading);}
+  if(fi>0){const last=sorted.filter(r=>r.date.startsWith(ms)).pop();if(last)usage=Math.max(0,sorted[fi-1].reading-last.reading);}
   const tariff=isE?s.eTariff:s.wTariff;
   const fixed=isE?s.eFixed:s.wFixed;
   const cost=usage>0?usage*tariff+fixed:0;
@@ -339,7 +339,7 @@ function savePayment() {
   const note=document.getElementById('p-note').value.trim();
   if(!date||isNaN(total)){alert('Please enter a date and total amount.');return;}
   state.payments.push({date,time,type,total,vat,service,units,arrears,note});
-  state.payments.sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')));
+  state.payments.sort((a,b)=>((a.date+' '+(a.time||'00:00'))).localeCompare((b.date+' '+(b.time||'00:00'))));
   save();
   ['p-total','p-vat','p-service','p-units','p-arrears','p-note'].forEach(id=>document.getElementById(id).value='');
   renderPayments(); updatePaymentSummary();
@@ -405,8 +405,8 @@ function getMonthlyUsage(arr){
   const sorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));
   const months={};
   for(let i=1;i<sorted.length;i++){
-    const u=sorted[i].reading-sorted[i-1].reading;
-    if(u<0)continue;
+    const u=sorted[i-1].reading-sorted[i].reading;
+    if(u<=0)continue;
     const m=sorted[i].date.slice(0,7);
     months[m]=(months[m]||0)+u;
   }
@@ -421,8 +421,8 @@ function getDailyUsage(arr,days=60){
   for(let i=1;i<sorted.length;i++){
     const d=new Date(sorted[i].date+'T00:00:00');
     if(d<cutoff)continue;
-    const u=sorted[i].reading-sorted[i-1].reading;
-    if(u<0)continue;
+    const u=sorted[i-1].reading-sorted[i].reading;
+    if(u<=0)continue;
     result.push({date:sorted[i].date,usage:u});
   }
   return result;
@@ -439,7 +439,7 @@ function renderDashboard(){
     const fi=sorted.findIndex(r=>r.date.startsWith(ms));
     if(fi<=0)return{usage:0,cost:0};
     const last=sorted.filter(r=>r.date.startsWith(ms)).pop();
-    const usage=last?Math.max(0,last.reading-sorted[fi-1].reading):0;
+    const usage=last?Math.max(0,sorted[fi-1].reading-last.reading):0;
     return{usage,cost:usage>0?usage*tariff+fixed:0};
   };
   const eM=calcMTD(state.elec,s.eTariff,s.eFixed);
