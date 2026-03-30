@@ -183,15 +183,26 @@
 
 <!-- DASHBOARD -->
 <div class="page" id="page-dash">
+  <!-- Rate change warnings -->
+  <div id="rate-warnings" style="margin-bottom:4px;"></div>
+
   <!-- Month picker -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
     <button onclick="changeMonth(-1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 16px;font-size:18px;cursor:pointer;">‹</button>
     <div id="dashMonthLabel" style="font-family:'Space Mono',monospace;font-size:13px;color:var(--text);font-weight:700;"></div>
     <button onclick="changeMonth(1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 16px;font-size:18px;cursor:pointer;">›</button>
   </div>
+  <div class="summary-grid" style="margin-bottom:12px;">
+    <div class="card"><div class="card-label">Elec MTD</div><div class="card-value e-color" id="d-e-usage">—</div><div class="card-sub" id="d-e-cost">no data</div></div>
+    <div class="card"><div class="card-label">Water MTD</div><div class="card-value w-color" id="d-w-usage">—</div><div class="card-sub" id="d-w-cost">no data</div></div>
+  </div>
   <div class="summary-grid" style="margin-bottom:20px;">
-    <div class="card"><div class="card-label">Elec Used</div><div class="card-value e-color" id="d-e-usage">—</div><div class="card-sub" id="d-e-cost">no data</div></div>
-    <div class="card"><div class="card-label">Water Used</div><div class="card-value w-color" id="d-w-usage">—</div><div class="card-sub" id="d-w-cost">no data</div></div>
+    <div class="card"><div class="card-label">Elec Projected</div><div class="card-value e-color" id="d-e-proj">—</div><div class="card-sub" id="d-e-proj-sub">full month est.</div></div>
+    <div class="card"><div class="card-label">Water Projected</div><div class="card-value w-color" id="d-w-proj">—</div><div class="card-sub" id="d-w-proj-sub">full month est.</div></div>
+  </div>
+  <div class="summary-grid" style="margin-bottom:20px;">
+    <div class="card"><div class="card-label">Elec Daily Avg</div><div class="card-value e-color" id="d-e-daily">—</div><div class="card-sub">kWh/day</div></div>
+    <div class="card"><div class="card-label">Water Daily Avg</div><div class="card-value w-color" id="d-w-daily">—</div><div class="card-sub">kL/day</div></div>
   </div>
   <div class="chart-container"><div class="chart-title">⚡ Electricity Daily Usage (kWh)</div><canvas id="chartElec" height="160"></canvas></div>
   <div class="chart-container"><div class="chart-title">💧 Water Daily Usage (kL)</div><canvas id="chartWater" height="160"></canvas></div>
@@ -202,19 +213,44 @@
 <!-- SETTINGS -->
 <div class="page" id="page-settings">
   <div class="settings-card">
-    <div class="settings-title"><span class="badge badge-e">⚡</span> Electricity Tariff</div>
-    <div class="form-group"><label>Rate per kWh (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 3.54" id="e-tariff" step="0.01"/></div>
-    <div class="form-group"><label>Fixed monthly charge (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 0.00" id="e-fixed" step="0.01"/></div>
+    <div class="settings-title"><span class="badge badge-e">⚡</span> Electricity — Rubicon CoCT</div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.8;font-family:'Space Mono',monospace;">
+      Fixed basic: R59.90 + VAT/month<br/>
+      Block 1 (0–1 kWh): R63.30 + VAT<br/>
+      Block 2 (1–600 kWh): R3.40 + VAT<br/>
+      Block 3 (&gt;600 kWh): R4.04/kWh
+    </div>
   </div>
   <div class="settings-card">
-    <div class="settings-title"><span class="badge badge-w">💧</span> Water Tariff</div>
-    <div class="form-group"><label>Rate per kL (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 40.77" id="w-tariff" step="0.01"/></div>
-    <div class="form-group"><label>Fixed monthly charge (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 225.00" id="w-fixed" step="0.01"/></div>
+    <div class="settings-title"><span class="badge badge-w">💧</span> Water — Rubicon Prepaid</div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.8;font-family:'Space Mono',monospace;">
+      0–4 kL: R35.06/kL excl VAT<br/>
+      4–6 kL: R38.52/kL excl VAT<br/>
+      6–8 kL: R48.18/kL excl VAT<br/>
+      8–10 kL: R56.84/kL excl VAT<br/>
+      10–11 kL: R67.51/kL excl VAT<br/>
+      11–27 kL: R72.96/kL excl VAT<br/>
+      Fixed: R145.47 + VAT/month<br/>
+      Daily warranty: R38.10 + VAT/month<br/>
+      Vending fee: 5.41% per purchase
+    </div>
   </div>
-  <button class="btn btn-e" onclick="saveSettings()">Save Settings</button>
+  <div class="settings-card">
+    <div class="settings-title">🏠 Household</div>
+    <div class="form-group"><label>Number of people in household</label><input type="text" inputmode="numeric" placeholder="e.g. 2" id="s-people"/></div>
+    <div class="form-group"><label>Monthly electricity budget (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 800" id="s-ebudget"/></div>
+    <div class="form-group"><label>Monthly water budget (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 450" id="s-wbudget"/></div>
+    <button class="btn btn-e" onclick="saveSettings()">Save</button>
+  </div>
+  <div class="settings-card">
+    <div class="settings-title">📊 Rate Accuracy</div>
+    <div id="rate-accuracy-info" style="font-size:12px;color:var(--muted);line-height:1.8;font-family:'Space Mono',monospace;">
+      Loading...
+    </div>
+  </div>
   <hr class="divider"/>
   <button class="btn" style="background:var(--surface2);color:var(--danger);border:1px solid var(--danger);margin-top:8px;" onclick="clearData()">🗑 Clear All Data</button>
-  <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px;">All data stored locally on your device.<br/>Open in Safari → Share → Add to Home Screen.</p>
+  <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px;">All data stored locally on your device.<br/>Tariffs update automatically when Rubicon rates change — just update the code.</p>
 </div>
 
 <div class="bottom-nav">
@@ -228,7 +264,7 @@
 <script>
 let state = {
   elec:[], water:[], payments:[],
-  settings:{eTariff:3.87,eFixed:68.29,wTariff:40.77,wFixed:225}
+  settings:{people:2,eBudget:800,wBudget:450}
 };
 let charts = {};
 
@@ -262,6 +298,7 @@ function showPage(id) {
   document.querySelectorAll('.nav-btn').forEach(b=>b.className='nav-btn');
   document.getElementById('nav-'+id).className='nav-btn '+cls;
   if(id==='dash') renderDashboard();
+  if(id==='settings') applySettings();
 }
 
 function saveReading(type) {
@@ -294,8 +331,8 @@ function renderReadings(type) {
     const origIdx=arr.length-1-i;
     const prev=arr[origIdx-1];
     const usage=prev?prev.reading-r.reading:null;
-    const tariff=isE?s.eTariff:s.wTariff;
-    const cost=usage!==null?usage*tariff:null;
+    const costFn=isE?calcElecCost:calcWaterCost;
+    const cost=usage!==null&&usage>0?costFn(usage):null;
     return `<div class="reading-item">
       <div>
         <div class="reading-datetime">${fmtDateTime(r.date,r.time)}</div>
@@ -317,20 +354,47 @@ function deleteReading(type,idx){
   save();renderReadings(type);updateSummary(type);
 }
 
+function getDailyAvg(arr){
+  if(arr.length<2)return 0;
+  const sorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));
+  const first=new Date(sorted[0].date+'T00:00:00');
+  const last=new Date(sorted[sorted.length-1].date+'T00:00:00');
+  const days=Math.max(1,Math.round((last-first)/(1000*60*60*24)));
+  const totalUsed=sorted[0].reading-sorted[sorted.length-1].reading;
+  return totalUsed>0?totalUsed/days:0;
+}
+
 function updateSummary(type) {
   const isE=type==='elec';
   const arr=isE?state.elec:state.water;
-  const s=state.settings;
+  const unit=isE?'kWh':'kL';
   const ms=new Date().toISOString().slice(0,7);
   const sorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));
+
+  // MTD usage
   const fi=sorted.findIndex(r=>r.date.startsWith(ms));
-  let usage=0;
-  if(fi>0){const last=sorted.filter(r=>r.date.startsWith(ms)).pop();if(last)usage=Math.max(0,sorted[fi-1].reading-last.reading);}
-  const tariff=isE?s.eTariff:s.wTariff;
-  const fixed=isE?s.eFixed:s.wFixed;
-  const cost=usage>0?usage*tariff+fixed:0;
-  document.getElementById(isE?'e-month-usage':'w-month-usage').textContent=usage>0?usage.toFixed(1):'—';
-  document.getElementById(isE?'e-month-cost':'w-month-cost').textContent=usage>0?fmtR(cost):'—';
+  let mtd=0;
+  if(fi>0){const last=sorted.filter(r=>r.date.startsWith(ms)).pop();if(last)mtd=Math.max(0,sorted[fi-1].reading-last.reading);}
+  else if(fi===0&&sorted.length>1){const last=sorted.filter(r=>r.date.startsWith(ms)).pop();if(last)mtd=Math.max(0,sorted[0].reading-last.reading);}
+
+  // Daily avg & projections
+  const dailyAvg=getDailyAvg(arr);
+  const projected30=dailyAvg*30;
+  const costFn=isE?calcElecCost:calcWaterCost;
+  const mtdCost=mtd>0?costFn(mtd):0;
+
+  // Days remaining
+  const currentBalance=sorted.length>0?sorted[sorted.length-1].reading:0;
+  const daysLeft=dailyAvg>0?Math.floor(currentBalance/dailyAvg):0;
+
+  document.getElementById(isE?'e-month-usage':'w-month-usage').textContent=mtd>0?mtd.toFixed(1):'—';
+  document.getElementById(isE?'e-month-cost':'w-month-cost').textContent=mtd>0?fmtR(mtdCost):'—';
+
+  // Update days remaining sub-label
+  const subEl=document.getElementById(isE?'e-month-cost':'w-month-cost');
+  if(subEl&&daysLeft>0){
+    subEl.parentElement.querySelector('.card-sub').textContent=daysLeft+' days left at current rate';
+  }
 }
 
 function savePayment() {
@@ -446,51 +510,175 @@ function getDailyUsage(arr,days=60){
 function fmtMonth(m){const[y,mo]=m.split('-');return new Date(parseInt(y),parseInt(mo)-1,1).toLocaleString('en-ZA',{month:'short',year:'2-digit'});}
 function fmtShort(d){return new Date(d+'T00:00:00').toLocaleDateString('en-ZA',{day:'2-digit',month:'short'});}
 
-// Tiered water cost - Rubicon Prepaid (excl. VAT rates, VAT added after)
-function calcWaterCost(kl){
-  // Tiered usage rates excl VAT
-  const tiers=[
-    {limit:4,   rate:35.06},
-    {limit:6,   rate:38.52},
-    {limit:8,   rate:48.18},
-    {limit:10,  rate:56.84},
-    {limit:11,  rate:67.51},
-    {limit:27,  rate:72.96},
-    {limit:28,  rate:87.76},
-    {limit:35,  rate:91.99},
-    {limit:38,  rate:132.34},
-    {limit:39,  rate:127.00},
-    {limit:Infinity, rate:83.80}
-  ];
+// ── TARIFF TABLES (Rubicon, Oct 2025) ──────────────────────────────────────
+// Update these when Rubicon issues new rates. The app will detect changes
+// automatically by comparing against your actual purchase history.
+const TARIFFS = {
+  elec: {
+    fixedExVat: 59.90,       // Monthly basic charge excl VAT
+    block1ExVat: 63.2995,    // First 1 kWh excl VAT
+    block2ExVat: 3.3995,     // 1-600 kWh excl VAT
+    block3: 4.0413,          // >600 kWh (incl VAT)
+    vat: 0.15,
+    lastUpdated: '2025-10'
+  },
+  water: {
+    tiers: [
+      {limit:4,   rate:35.06},
+      {limit:6,   rate:38.52},
+      {limit:8,   rate:48.18},
+      {limit:10,  rate:56.84},
+      {limit:11,  rate:67.51},
+      {limit:27,  rate:72.96},
+      {limit:28,  rate:87.76},
+      {limit:35,  rate:91.99},
+      {limit:38,  rate:132.34},
+      {limit:39,  rate:127.00},
+      {limit:Infinity, rate:83.80}
+    ],
+    fixedExVat: 145.47,      // Monthly basic + sewer + PEC
+    warrantyExVat: 38.10,    // Monthly warranty fee
+    vendingPct: 0.0541,      // 5.41% vending fee
+    vat: 0.15,
+    lastUpdated: '2025-10'
+  }
+};
+
+// Tariff-table cost functions
+function calcWaterCostTable(kl){
+  const t=TARIFFS.water;
   let cost=0,rem=kl,prev=0;
-  for(const t of tiers){
-    const chunk=Math.min(rem,t.limit-prev);
+  for(const tier of t.tiers){
+    const chunk=Math.min(rem,tier.limit-prev);
     if(chunk<=0)break;
-    cost+=chunk*t.rate;
+    cost+=chunk*tier.rate;
     rem-=chunk;
-    prev=t.limit;
+    prev=tier.limit;
     if(rem<=0)break;
   }
-  // Add VAT (15%)
-  cost=cost*1.15;
-  // Fixed monthly charges (incl VAT): R145.47+VAT basic + R38.10+VAT daily warranty
-  const fixedMonthly=(145.47+38.10)*1.15;
-  // Vending fee 5.41% on purchase (approximate per month)
-  const vendingFee=cost*0.0541;
-  return cost+fixedMonthly+vendingFee;
+  cost=cost*(1+t.vat);
+  const fixed=(t.fixedExVat+t.warrantyExVat)*(1+t.vat);
+  const vending=cost*t.vendingPct;
+  return cost+fixed+vending;
 }
 
-// Electricity cost - Rubicon CoCT Residential
-function calcElecCost(kwh){
-  // Fixed basic charge R59.90 + VAT = R68.29/month
-  const fixed=59.90*1.15;
-  // Block 1: first 1 kWh = R63.2995 + VAT (one-off per month)
-  const block1=Math.min(kwh,1)*63.2995*1.15;
-  // Block 2: 1-600 kWh = R3.3995 + VAT
-  const block2=Math.min(Math.max(kwh-1,0),599)*3.3995*1.15;
-  // Block 3: >600 kWh = R4.0413 (no VAT listed - likely incl)
-  const block3=Math.max(kwh-600,0)*4.0413;
+function calcElecCostTable(kwh){
+  const t=TARIFFS.elec;
+  const fixed=t.fixedExVat*(1+t.vat);
+  const block1=Math.min(kwh,1)*t.block1ExVat*(1+t.vat);
+  const block2=Math.min(Math.max(kwh-1,0),599)*t.block2ExVat*(1+t.vat);
+  const block3=Math.max(kwh-600,0)*t.block3;
   return fixed+block1+block2+block3;
+}
+
+// ── PURCHASE-DERIVED EFFECTIVE RATES ────────────────────────────────────────
+// Returns weighted effective rate (R per unit) from purchase history.
+// Recent purchases weighted 2x vs older ones to detect rate changes quickly.
+// Returns null if fewer than MIN_PURCHASES valid entries exist.
+const MIN_PURCHASES = 2;
+const CHANGE_THRESHOLD = 0.05; // 5% difference triggers a warning
+
+function getEffectiveRate(type){
+  const purchases=state.payments
+    .filter(p=>p.type===type && p.units>0 && p.total>0)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  if(purchases.length<MIN_PURCHASES)return null;
+  // Weight: most recent half gets weight 2, older half weight 1
+  const half=Math.ceil(purchases.length/2);
+  let totalCost=0,totalUnits=0;
+  purchases.forEach((p,i)=>{
+    const w=i>=purchases.length-half?2:1;
+    totalCost+=p.total*w;
+    totalUnits+=p.units*w;
+  });
+  return totalUnits>0?totalCost/totalUnits:null;
+}
+
+// Main cost functions — use purchase-derived rate if available, else tariff table
+function calcElecCost(kwh){
+  const effectiveRate=getEffectiveRate('elec');
+  if(effectiveRate!==null) return kwh*effectiveRate;
+  return calcElecCostTable(kwh);
+}
+
+function calcWaterCost(kl){
+  const effectiveRate=getEffectiveRate('water');
+  if(effectiveRate!==null) return kl*effectiveRate;
+  return calcWaterCostTable(kl);
+}
+
+// ── RATE CHANGE DETECTION ────────────────────────────────────────────────────
+// Returns a warning object if effective rate differs >5% from tariff table.
+// Uses tariff table's avg effective rate at typical monthly usage for comparison.
+function checkRateChanges(){
+  const warnings=[];
+
+  // Electricity: compare effective rate vs table rate at typical 200 kWh
+  const eEffective=getEffectiveRate('elec');
+  if(eEffective!==null){
+    const tableRateAt200=calcElecCostTable(200)/200;
+    const diff=(eEffective-tableRateAt200)/tableRateAt200;
+    if(Math.abs(diff)>CHANGE_THRESHOLD){
+      const dir=diff>0?'UP':'DOWN';
+      const pct=Math.abs(diff*100).toFixed(1);
+      const lastPurchase=state.payments.filter(p=>p.type==='elec'&&p.units>0).sort((a,b)=>b.date.localeCompare(a.date))[0];
+      warnings.push({
+        type:'elec',
+        dir,pct,
+        effectiveRate:eEffective,
+        tableRate:tableRateAt200,
+        lastDate:lastPurchase?lastPurchase.date:'',
+        count:state.payments.filter(p=>p.type==='elec'&&p.units>0).length
+      });
+    }
+  }
+
+  // Water: compare effective rate vs table rate at typical 8 kL/month
+  const wEffective=getEffectiveRate('water');
+  if(wEffective!==null){
+    const tableRateAt8=calcWaterCostTable(8)/8;
+    const diff=(wEffective-tableRateAt8)/tableRateAt8;
+    if(Math.abs(diff)>CHANGE_THRESHOLD){
+      const dir=diff>0?'UP':'DOWN';
+      const pct=Math.abs(diff*100).toFixed(1);
+      const lastPurchase=state.payments.filter(p=>p.type==='water'&&p.units>0).sort((a,b)=>b.date.localeCompare(a.date))[0];
+      warnings.push({
+        type:'water',
+        dir,pct,
+        effectiveRate:wEffective,
+        tableRate:tableRateAt8,
+        lastDate:lastPurchase?lastPurchase.date:'',
+        count:state.payments.filter(p=>p.type==='water'&&p.units>0).length
+      });
+    }
+  }
+
+  return warnings;
+}
+
+function showRateWarnings(){
+  const warnings=checkRateChanges();
+  const el=document.getElementById('rate-warnings');
+  if(!el)return;
+  if(!warnings.length){el.innerHTML='';return;}
+  el.innerHTML=warnings.map(w=>{
+    const icon=w.type==='elec'?'⚡':'💧';
+    const color=w.dir==='UP'?'var(--danger)':'var(--green)';
+    const arrow=w.dir==='UP'?'↑':'↓';
+    return `<div style="background:var(--surface);border:1px solid ${color};border-radius:12px;padding:14px;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:700;color:${color};font-family:'Space Mono',monospace;margin-bottom:6px;">
+        ${icon} RATE ${w.dir} ${arrow}${w.pct}%
+      </div>
+      <div style="font-size:12px;color:var(--text);margin-bottom:4px;">
+        Your actual effective rate is <strong style="color:${color}">R${w.effectiveRate.toFixed(2)}/${w.type==='elec'?'kWh':'kL'}</strong>
+        vs table rate of <strong>R${w.tableRate.toFixed(2)}/${w.type==='elec'?'kWh':'kL'}</strong>
+      </div>
+      <div style="font-size:11px;color:var(--muted);">
+        Based on ${w.count} purchase${w.count!==1?'s':''} · Last purchase: ${w.lastDate?fmtDateTime(w.lastDate,''):'unknown'}<br/>
+        Tariff tables last updated: ${w.type==='elec'?TARIFFS.elec.lastUpdated:TARIFFS.water.lastUpdated}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 let dashOffset=0; // 0=current month, -1=last month etc
@@ -533,12 +721,32 @@ function renderDashboard(){
     return{usage,cost:costFn(usage)};
   };
 
+  // Show rate change warnings
+  showRateWarnings();
+
+  // MTD for selected month
   const eM=calcMonth(state.elec,u=>calcElecCost(u));
   const wM=calcMonth(state.water,u=>calcWaterCost(u));
   document.getElementById('d-e-usage').textContent=eM.usage>0?eM.usage.toFixed(1)+' kWh':'—';
   document.getElementById('d-e-cost').textContent=eM.cost>0?fmtR(eM.cost):'no data';
   document.getElementById('d-w-usage').textContent=wM.usage>0?wM.usage.toFixed(1)+' kL':'—';
   document.getElementById('d-w-cost').textContent=wM.cost>0?fmtR(wM.cost):'no data';
+
+  // Daily averages (all time data)
+  const eDailyAvg=getDailyAvg(state.elec);
+  const wDailyAvg=getDailyAvg(state.water);
+  document.getElementById('d-e-daily').textContent=eDailyAvg>0?eDailyAvg.toFixed(2):'—';
+  document.getElementById('d-w-daily').textContent=wDailyAvg>0?wDailyAvg.toFixed(3):'—';
+
+  // Projected full month cost (daily avg × 30)
+  const eProj=eDailyAvg*30;
+  const wProj=wDailyAvg*30;
+  const eProjCost=eProj>0?calcElecCost(eProj):0;
+  const wProjCost=wProj>0?calcWaterCost(wProj):0;
+  document.getElementById('d-e-proj').textContent=eProjCost>0?fmtR(eProjCost):'—';
+  document.getElementById('d-e-proj-sub').textContent=eProj>0?eProj.toFixed(1)+' kWh/month est.':'based on avg '+eDailyAvg.toFixed(2)+' kWh/day';
+  document.getElementById('d-w-proj').textContent=wProjCost>0?fmtR(wProjCost):'—';
+  document.getElementById('d-w-proj-sub').textContent=wProj>0?wProj.toFixed(2)+' kL/month est.':'based on avg '+wDailyAvg.toFixed(3)+' kL/day';
 
   const cd={responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9}}},y:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9}},beginAtZero:true}}};
 
@@ -590,8 +798,41 @@ function renderDashboard(){
   charts.payments=new Chart(document.getElementById('chartPayments'),{type:'bar',data:{labels:pM.map(fmtMonth),datasets:[{label:'Electricity',data:pM.map(m=>payMonths[m].elec.toFixed(2)),backgroundColor:'rgba(245,200,66,0.7)',borderRadius:4},{label:'Water',data:pM.map(m=>payMonths[m].water.toFixed(2)),backgroundColor:'rgba(66,184,245,0.7)',borderRadius:4}]},options:{responsive:true,plugins:{legend:{labels:{color:'#6b7490',font:{family:'Space Mono',size:9}}}},scales:{x:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9}}},y:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9},callback:v=>'R'+v},beginAtZero:true}}}});
 }
 
-function applySettings(){const s=state.settings;document.getElementById('e-tariff').value=s.eTariff;document.getElementById('e-fixed').value=s.eFixed;document.getElementById('w-tariff').value=s.wTariff;document.getElementById('w-fixed').value=s.wFixed;}
-function saveSettings(){const et=parseNum(document.getElementById('e-tariff').value),ef=parseNum(document.getElementById('e-fixed').value),wt=parseNum(document.getElementById('w-tariff').value),wf=parseNum(document.getElementById('w-fixed').value);if([et,ef,wt,wf].some(isNaN)){alert('Please fill in all fields.');return;}state.settings={eTariff:et,eFixed:ef,wTariff:wt,wFixed:wf};save();updateSummary('elec');updateSummary('water');alert('✅ Settings saved!');}
+function applySettings(){
+  const s=state.settings;
+  document.getElementById('s-people').value=s.people||2;
+  document.getElementById('s-ebudget').value=s.eBudget||800;
+  document.getElementById('s-wbudget').value=s.wBudget||450;
+  // Update rate accuracy info
+  const el=document.getElementById('rate-accuracy-info');
+  if(!el)return;
+  const eCount=state.payments.filter(p=>p.type==='elec'&&p.units>0).length;
+  const wCount=state.payments.filter(p=>p.type==='water'&&p.units>0).length;
+  const eRate=getEffectiveRate('elec');
+  const wRate=getEffectiveRate('water');
+  const warnings=checkRateChanges();
+  const eWarn=warnings.find(w=>w.type==='elec');
+  const wWarn=warnings.find(w=>w.type==='water');
+  el.innerHTML=
+    `<span style="color:var(--accent-e)">⚡ Electricity</span><br/>` +
+    (eRate!==null
+      ? `Using purchase avg: R${eRate.toFixed(2)}/kWh (${eCount} purchase${eCount!==1?'s':''})<br/>` +
+        (eWarn ? `<span style="color:var(--danger)">⚠ Differs ${eWarn.pct}% from table rate</span><br/>` : `<span style="color:var(--green)">✓ Matches table rate</span><br/>`)
+      : `Using tariff table (add ${MIN_PURCHASES-eCount} more purchase${MIN_PURCHASES-eCount!==1?'s':''} to enable auto-rate)<br/>`) +
+    `<br/><span style="color:var(--accent-w)">💧 Water</span><br/>` +
+    (wRate!==null
+      ? `Using purchase avg: R${wRate.toFixed(2)}/kL (${wCount} purchase${wCount!==1?'s':''})<br/>` +
+        (wWarn ? `<span style="color:var(--danger)">⚠ Differs ${wWarn.pct}% from table rate</span><br/>` : `<span style="color:var(--green)">✓ Matches table rate</span><br/>`)
+      : `Using tariff table (add ${Math.max(0,MIN_PURCHASES-wCount)} more purchase${Math.max(0,MIN_PURCHASES-wCount)!==1?'s':''} to enable auto-rate)<br/>`) +
+    `<br/><span style="color:var(--muted)">Tariff tables: Oct 2025</span>`;
+}
+function saveSettings(){
+  const people=parseInt(document.getElementById('s-people').value)||2;
+  const eBudget=parseNum(document.getElementById('s-ebudget').value)||800;
+  const wBudget=parseNum(document.getElementById('s-wbudget').value)||450;
+  state.settings={people,eBudget,wBudget};
+  save();updateSummary('elec');updateSummary('water');alert('✅ Settings saved!');
+}
 function clearData(){if(confirm('Delete ALL data? This cannot be undone.')){state.elec=[];state.water=[];state.payments=[];save();renderReadings('elec');renderReadings('water');renderPayments();updateSummary('elec');updateSummary('water');updatePaymentSummary();alert('Data cleared.');}}
 
 document.addEventListener('DOMContentLoaded',()=>{
