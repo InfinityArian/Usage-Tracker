@@ -1,0 +1,172 @@
+{
+  "elec": [
+    {
+      "date": "2026-03-19",
+      "time": "",
+      "reading": 299.86,
+      "note": "First photo reading"
+    },
+    {
+      "date": "2026-03-21",
+      "time": "",
+      "reading": 284.79,
+      "note": ""
+    },
+    {
+      "date": "2026-03-22",
+      "time": "",
+      "reading": 281.69,
+      "note": ""
+    },
+    {
+      "date": "2026-03-23",
+      "time": "06:45",
+      "reading": 272.99,
+      "note": "Morning"
+    },
+    {
+      "date": "2026-03-23",
+      "time": "23:30",
+      "reading": 269.38,
+      "note": "Night"
+    },
+    {
+      "date": "2026-03-24",
+      "time": "06:55",
+      "reading": 268.07,
+      "note": "Morning"
+    },
+    {
+      "date": "2026-03-25",
+      "time": "21:16",
+      "reading": 255.24,
+      "note": "Night"
+    },
+    {
+      "date": "2026-03-28",
+      "time": "21:25",
+      "reading": 237.19,
+      "note": "Night"
+    },
+    {
+      "date": "2026-03-30",
+      "time": "19:42",
+      "reading": 219.69,
+      "note": ""
+    },
+    {
+      "date": "2026-03-30",
+      "time": "20:34",
+      "reading": 218.89,
+      "note": ""
+    }
+  ],
+  "water": [
+    {
+      "date": "2026-03-19",
+      "time": "",
+      "reading": 8.39,
+      "note": ""
+    },
+    {
+      "date": "2026-03-20",
+      "time": "",
+      "reading": 8.3,
+      "note": "Morning"
+    },
+    {
+      "date": "2026-03-21",
+      "time": "",
+      "reading": 7.96,
+      "note": "Morning"
+    },
+    {
+      "date": "2026-03-22",
+      "time": "",
+      "reading": 7.91,
+      "note": "Morning"
+    },
+    {
+      "date": "2026-03-23",
+      "time": "23:10",
+      "reading": 7.61,
+      "note": ""
+    },
+    {
+      "date": "2026-03-24",
+      "time": "06:55",
+      "reading": 7.55,
+      "note": "Morning"
+    },
+    {
+      "date": "2026-03-25",
+      "time": "21:16",
+      "reading": 7.29,
+      "note": "Night"
+    },
+    {
+      "date": "2026-03-28",
+      "time": "21:28",
+      "reading": 6.83,
+      "note": "Night"
+    },
+    {
+      "date": "2026-03-30",
+      "time": "19:38",
+      "reading": 6.5,
+      "note": ""
+    }
+  ],
+  "payments": [
+    {
+      "date": "2026-02-24",
+      "time": "",
+      "type": "elec",
+      "total": 1565.22,
+      "vat": 234.78,
+      "service": 0,
+      "units": 442.7,
+      "arrears": 0,
+      "note": "Token: 0338-5274-9616-0620-8431"
+    },
+    {
+      "date": "2026-02-22",
+      "time": "",
+      "type": "water",
+      "total": 500,
+      "vat": 43.39,
+      "service": 214.27,
+      "units": 2.2,
+      "arrears": 167.3,
+      "note": "Token: 0454-8070-7211-9223-8781"
+    },
+    {
+      "date": "2026-02-24",
+      "time": "",
+      "type": "water",
+      "total": 499.99999999999994,
+      "vat": 65.21,
+      "service": 29.59,
+      "units": 8.7,
+      "arrears": 0,
+      "note": "Token: 3372-9759-1277-4573-4107"
+    },
+    {
+      "date": "2026-03-10",
+      "time": "",
+      "type": "water",
+      "total": 958.05,
+      "vat": 91.3,
+      "service": 166.75,
+      "units": 9.6,
+      "arrears": 0,
+      "note": "Token: 1683-9308-5232-3368-5347"
+    }
+  ],
+  "settings": {
+    "eTariff": 2.85,
+    "eFixed": 85,
+    "wTariff": 18.5,
+    "wFixed": 60
+  }
+}
