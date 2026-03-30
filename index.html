@@ -126,7 +126,7 @@
     <div class="form-group"><label>Date</label><input type="date" id="e-date"/></div>
     <div class="form-group"><label>Time</label><input type="time" id="e-time"/></div>
   </div>
-  <div class="form-group"><label>Meter Reading (kWh)</label><input type="number" inputmode="decimal" placeholder="e.g. 12345.6" id="e-reading"/></div>
+  <div class="form-group"><label>Meter Reading (kWh)</label><input type="text" inputmode="decimal" placeholder="e.g. 12345.6" id="e-reading"/></div>
   <div class="form-group"><label>Notes (optional)</label><input type="text" placeholder="e.g. after load shedding" id="e-note"/></div>
   <button class="btn btn-e" onclick="saveReading('elec')">+ Save Reading</button>
   <div style="margin-top:24px;"><div class="section-title">Recent Readings</div><div id="e-readings-list"></div></div>
@@ -143,7 +143,7 @@
     <div class="form-group water"><label>Date</label><input type="date" id="w-date"/></div>
     <div class="form-group water"><label>Time</label><input type="time" id="w-time"/></div>
   </div>
-  <div class="form-group water"><label>Meter Reading (kL)</label><input type="number" inputmode="decimal" placeholder="e.g. 456.7" id="w-reading"/></div>
+  <div class="form-group water"><label>Meter Reading (kL)</label><input type="text" inputmode="decimal" placeholder="e.g. 456.7" id="w-reading"/></div>
   <div class="form-group water"><label>Notes (optional)</label><input type="text" placeholder="e.g. after garden watering" id="w-note"/></div>
   <button class="btn btn-w" onclick="saveReading('water')">+ Save Reading</button>
   <div style="margin-top:24px;"><div class="section-title">Recent Readings</div><div id="w-readings-list"></div></div>
@@ -167,14 +167,14 @@
       <option value="water">💧 Water</option>
     </select>
   </div>
-  <div class="form-group pay"><label>Total Amount Paid (R)</label><input type="number" inputmode="decimal" placeholder="e.g. 850.00" id="p-total"/></div>
+  <div class="form-group pay"><label>Total Amount Paid (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 850.00" id="p-total"/></div>
   <div class="form-row">
-    <div class="form-group pay"><label>VAT (R)</label><input type="number" inputmode="decimal" placeholder="e.g. 110.87" id="p-vat"/></div>
-    <div class="form-group pay"><label>Service Charge (R)</label><input type="number" inputmode="decimal" placeholder="e.g. 85.00" id="p-service"/></div>
+    <div class="form-group pay"><label>VAT (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 110.87" id="p-vat"/></div>
+    <div class="form-group pay"><label>Service Charge (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 85.00" id="p-service"/></div>
   </div>
   <div class="form-row">
-    <div class="form-group pay"><label>Units Bought</label><input type="number" inputmode="decimal" placeholder="e.g. 150" id="p-units"/></div>
-    <div class="form-group pay"><label>Arrears (R)</label><input type="number" inputmode="decimal" placeholder="e.g. 0.00" id="p-arrears"/></div>
+    <div class="form-group pay"><label>Units Bought</label><input type="text" inputmode="decimal" placeholder="e.g. 150" id="p-units"/></div>
+    <div class="form-group pay"><label>Arrears (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 0.00" id="p-arrears"/></div>
   </div>
   <div class="form-group pay"><label>Notes (optional)</label><input type="text" placeholder="e.g. prepaid top-up" id="p-note"/></div>
   <button class="btn btn-p" onclick="savePayment()">+ Save Payment</button>
@@ -197,13 +197,13 @@
 <div class="page" id="page-settings">
   <div class="settings-card">
     <div class="settings-title"><span class="badge badge-e">⚡</span> Electricity Tariff</div>
-    <div class="form-group"><label>Rate per kWh (R)</label><input type="number" inputmode="decimal" placeholder="e.g. 2.85" id="e-tariff" step="0.01"/></div>
-    <div class="form-group"><label>Fixed monthly charge (R)</label><input type="number" inputmode="decimal" placeholder="e.g. 85.00" id="e-fixed" step="0.01"/></div>
+    <div class="form-group"><label>Rate per kWh (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 2.85" id="e-tariff" step="0.01"/></div>
+    <div class="form-group"><label>Fixed monthly charge (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 85.00" id="e-fixed" step="0.01"/></div>
   </div>
   <div class="settings-card">
     <div class="settings-title"><span class="badge badge-w">💧</span> Water Tariff</div>
-    <div class="form-group"><label>Rate per kL (R)</label><input type="number" inputmode="decimal" placeholder="e.g. 18.50" id="w-tariff" step="0.01"/></div>
-    <div class="form-group"><label>Fixed monthly charge (R)</label><input type="number" inputmode="decimal" placeholder="e.g. 60.00" id="w-fixed" step="0.01"/></div>
+    <div class="form-group"><label>Rate per kL (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 18.50" id="w-tariff" step="0.01"/></div>
+    <div class="form-group"><label>Fixed monthly charge (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 60.00" id="w-fixed" step="0.01"/></div>
   </div>
   <button class="btn btn-e" onclick="saveSettings()">Save Settings</button>
   <hr class="divider"/>
@@ -225,6 +225,8 @@ let state = {
   settings:{eTariff:2.85,eFixed:85,wTariff:18.50,wFixed:60}
 };
 let charts = {};
+
+function parseNum(val) { return parseFloat(String(val).replace(',','.')); }
 
 function load() {
   const s = localStorage.getItem('usageTrackerV2');
@@ -260,7 +262,7 @@ function saveReading(type) {
   const isE=type==='elec';
   const date=document.getElementById(isE?'e-date':'w-date').value;
   const time=document.getElementById(isE?'e-time':'w-time').value;
-  const reading=parseFloat(document.getElementById(isE?'e-reading':'w-reading').value);
+  const reading=parseNum(document.getElementById(isE?'e-reading':'w-reading').value);
   const note=document.getElementById(isE?'e-note':'w-note').value.trim();
   if(!date||isNaN(reading)){alert('Please enter a date and meter reading.');return;}
   const arr=isE?state.elec:state.water;
@@ -329,11 +331,11 @@ function savePayment() {
   const date=document.getElementById('p-date').value;
   const time=document.getElementById('p-time').value;
   const type=document.getElementById('p-type').value;
-  const total=parseFloat(document.getElementById('p-total').value);
-  const vat=parseFloat(document.getElementById('p-vat').value)||0;
-  const service=parseFloat(document.getElementById('p-service').value)||0;
-  const units=parseFloat(document.getElementById('p-units').value)||0;
-  const arrears=parseFloat(document.getElementById('p-arrears').value)||0;
+  const total=parseNum(document.getElementById('p-total').value);
+  const vat=parseNum(document.getElementById('p-vat').value)||0;
+  const service=parseNum(document.getElementById('p-service').value)||0;
+  const units=parseNum(document.getElementById('p-units').value)||0;
+  const arrears=parseNum(document.getElementById('p-arrears').value)||0;
   const note=document.getElementById('p-note').value.trim();
   if(!date||isNaN(total)){alert('Please enter a date and total amount.');return;}
   state.payments.push({date,time,type,total,vat,service,units,arrears,note});
@@ -473,7 +475,7 @@ function renderDashboard(){
 }
 
 function applySettings(){const s=state.settings;document.getElementById('e-tariff').value=s.eTariff;document.getElementById('e-fixed').value=s.eFixed;document.getElementById('w-tariff').value=s.wTariff;document.getElementById('w-fixed').value=s.wFixed;}
-function saveSettings(){const et=parseFloat(document.getElementById('e-tariff').value),ef=parseFloat(document.getElementById('e-fixed').value),wt=parseFloat(document.getElementById('w-tariff').value),wf=parseFloat(document.getElementById('w-fixed').value);if([et,ef,wt,wf].some(isNaN)){alert('Please fill in all fields.');return;}state.settings={eTariff:et,eFixed:ef,wTariff:wt,wFixed:wf};save();updateSummary('elec');updateSummary('water');alert('✅ Settings saved!');}
+function saveSettings(){const et=parseNum(document.getElementById('e-tariff').value),ef=parseNum(document.getElementById('e-fixed').value),wt=parseNum(document.getElementById('w-tariff').value),wf=parseNum(document.getElementById('w-fixed').value);if([et,ef,wt,wf].some(isNaN)){alert('Please fill in all fields.');return;}state.settings={eTariff:et,eFixed:ef,wTariff:wt,wFixed:wf};save();updateSummary('elec');updateSummary('water');alert('✅ Settings saved!');}
 function clearData(){if(confirm('Delete ALL data? This cannot be undone.')){state.elec=[];state.water=[];state.payments=[];save();renderReadings('elec');renderReadings('water');renderPayments();updateSummary('elec');updateSummary('water');updatePaymentSummary();alert('Data cleared.');}}
 
 document.addEventListener('DOMContentLoaded',()=>{
