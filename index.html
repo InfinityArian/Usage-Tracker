@@ -183,12 +183,18 @@
 
 <!-- DASHBOARD -->
 <div class="page" id="page-dash">
-  <div class="summary-grid" style="margin-bottom:20px;">
-    <div class="card"><div class="card-label">Elec MTD</div><div class="card-value e-color" id="d-e-usage">—</div><div class="card-sub" id="d-e-cost">no data</div></div>
-    <div class="card"><div class="card-label">Water MTD</div><div class="card-value w-color" id="d-w-usage">—</div><div class="card-sub" id="d-w-cost">no data</div></div>
+  <!-- Month picker -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <button onclick="changeMonth(-1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 16px;font-size:18px;cursor:pointer;">‹</button>
+    <div id="dashMonthLabel" style="font-family:'Space Mono',monospace;font-size:13px;color:var(--text);font-weight:700;"></div>
+    <button onclick="changeMonth(1)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 16px;font-size:18px;cursor:pointer;">›</button>
   </div>
-  <div class="chart-container"><div class="chart-title">⚡ Electricity — Last 60 Days (kWh)</div><canvas id="chartElec" height="160"></canvas></div>
-  <div class="chart-container"><div class="chart-title">💧 Water — Last 60 Days (kL)</div><canvas id="chartWater" height="160"></canvas></div>
+  <div class="summary-grid" style="margin-bottom:20px;">
+    <div class="card"><div class="card-label">Elec Used</div><div class="card-value e-color" id="d-e-usage">—</div><div class="card-sub" id="d-e-cost">no data</div></div>
+    <div class="card"><div class="card-label">Water Used</div><div class="card-value w-color" id="d-w-usage">—</div><div class="card-sub" id="d-w-cost">no data</div></div>
+  </div>
+  <div class="chart-container"><div class="chart-title">⚡ Electricity Daily Usage (kWh)</div><canvas id="chartElec" height="160"></canvas></div>
+  <div class="chart-container"><div class="chart-title">💧 Water Daily Usage (kL)</div><canvas id="chartWater" height="160"></canvas></div>
   <div class="chart-container"><div class="chart-title">💰 Monthly Estimated Cost (R)</div><canvas id="chartCost" height="160"></canvas></div>
   <div class="chart-container"><div class="chart-title">💳 Actual Payments per Month (R)</div><canvas id="chartPayments" height="160"></canvas></div>
 </div>
@@ -197,13 +203,13 @@
 <div class="page" id="page-settings">
   <div class="settings-card">
     <div class="settings-title"><span class="badge badge-e">⚡</span> Electricity Tariff</div>
-    <div class="form-group"><label>Rate per kWh (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 2.85" id="e-tariff" step="0.01"/></div>
-    <div class="form-group"><label>Fixed monthly charge (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 85.00" id="e-fixed" step="0.01"/></div>
+    <div class="form-group"><label>Rate per kWh (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 3.54" id="e-tariff" step="0.01"/></div>
+    <div class="form-group"><label>Fixed monthly charge (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 0.00" id="e-fixed" step="0.01"/></div>
   </div>
   <div class="settings-card">
     <div class="settings-title"><span class="badge badge-w">💧</span> Water Tariff</div>
-    <div class="form-group"><label>Rate per kL (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 18.50" id="w-tariff" step="0.01"/></div>
-    <div class="form-group"><label>Fixed monthly charge (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 60.00" id="w-fixed" step="0.01"/></div>
+    <div class="form-group"><label>Rate per kL (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 40.77" id="w-tariff" step="0.01"/></div>
+    <div class="form-group"><label>Fixed monthly charge (R)</label><input type="text" inputmode="decimal" placeholder="e.g. 225.00" id="w-fixed" step="0.01"/></div>
   </div>
   <button class="btn btn-e" onclick="saveSettings()">Save Settings</button>
   <hr class="divider"/>
@@ -222,7 +228,7 @@
 <script>
 let state = {
   elec:[], water:[], payments:[],
-  settings:{eTariff:2.85,eFixed:85,wTariff:18.50,wFixed:60}
+  settings:{eTariff:3.87,eFixed:68.29,wTariff:40.77,wFixed:225}
 };
 let charts = {};
 
@@ -440,19 +446,95 @@ function getDailyUsage(arr,days=60){
 function fmtMonth(m){const[y,mo]=m.split('-');return new Date(parseInt(y),parseInt(mo)-1,1).toLocaleString('en-ZA',{month:'short',year:'2-digit'});}
 function fmtShort(d){return new Date(d+'T00:00:00').toLocaleDateString('en-ZA',{day:'2-digit',month:'short'});}
 
+// Tiered water cost - Rubicon Prepaid (excl. VAT rates, VAT added after)
+function calcWaterCost(kl){
+  // Tiered usage rates excl VAT
+  const tiers=[
+    {limit:4,   rate:35.06},
+    {limit:6,   rate:38.52},
+    {limit:8,   rate:48.18},
+    {limit:10,  rate:56.84},
+    {limit:11,  rate:67.51},
+    {limit:27,  rate:72.96},
+    {limit:28,  rate:87.76},
+    {limit:35,  rate:91.99},
+    {limit:38,  rate:132.34},
+    {limit:39,  rate:127.00},
+    {limit:Infinity, rate:83.80}
+  ];
+  let cost=0,rem=kl,prev=0;
+  for(const t of tiers){
+    const chunk=Math.min(rem,t.limit-prev);
+    if(chunk<=0)break;
+    cost+=chunk*t.rate;
+    rem-=chunk;
+    prev=t.limit;
+    if(rem<=0)break;
+  }
+  // Add VAT (15%)
+  cost=cost*1.15;
+  // Fixed monthly charges (incl VAT): R145.47+VAT basic + R38.10+VAT daily warranty
+  const fixedMonthly=(145.47+38.10)*1.15;
+  // Vending fee 5.41% on purchase (approximate per month)
+  const vendingFee=cost*0.0541;
+  return cost+fixedMonthly+vendingFee;
+}
+
+// Electricity cost - Rubicon CoCT Residential
+function calcElecCost(kwh){
+  // Fixed basic charge R59.90 + VAT = R68.29/month
+  const fixed=59.90*1.15;
+  // Block 1: first 1 kWh = R63.2995 + VAT (one-off per month)
+  const block1=Math.min(kwh,1)*63.2995*1.15;
+  // Block 2: 1-600 kWh = R3.3995 + VAT
+  const block2=Math.min(Math.max(kwh-1,0),599)*3.3995*1.15;
+  // Block 3: >600 kWh = R4.0413 (no VAT listed - likely incl)
+  const block3=Math.max(kwh-600,0)*4.0413;
+  return fixed+block1+block2+block3;
+}
+
+let dashOffset=0; // 0=current month, -1=last month etc
+
+function changeMonth(dir){
+  dashOffset+=dir;
+  renderDashboard();
+}
+
+function getMonthStr(offset){
+  const d=new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth()+offset);
+  return d.toISOString().slice(0,7);
+}
+
 function renderDashboard(){
   const s=state.settings;
-  const ms=new Date().toISOString().slice(0,7);
-  const calcMTD=(arr,tariff,fixed)=>{
+  const ms=getMonthStr(dashOffset);
+  const [y,mo]=ms.split('-');
+  const monthName=new Date(parseInt(y),parseInt(mo)-1,1).toLocaleString('en-ZA',{month:'long',year:'numeric'});
+  document.getElementById('dashMonthLabel').textContent=monthName;
+
+  // Disable next button if at current month
+  const btns=document.querySelectorAll('#page-dash button');
+  btns[1].style.opacity=dashOffset>=0?'0.3':'1';
+  btns[1].disabled=dashOffset>=0;
+
+  // MTD stats for selected month
+  const calcMonth=(arr,costFn)=>{
     const sorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));
-    const fi=sorted.findIndex(r=>r.date.startsWith(ms));
-    if(fi<=0)return{usage:0,cost:0};
-    const last=sorted.filter(r=>r.date.startsWith(ms)).pop();
-    const usage=last?Math.max(0,sorted[fi-1].reading-last.reading):0;
-    return{usage,cost:usage>0?usage*tariff+fixed:0};
+    // find last reading before month start
+    const monthStart=ms+'-01';
+    const prevReading=sorted.filter(r=>r.date<monthStart).pop();
+    const monthReadings=sorted.filter(r=>r.date.startsWith(ms));
+    if(!monthReadings.length)return{usage:0,cost:0};
+    const baseline=prevReading||monthReadings[0];
+    const last=monthReadings[monthReadings.length-1];
+    const usage=Math.max(0,baseline.reading-last.reading);
+    return{usage,cost:costFn(usage)};
   };
-  const eM=calcMTD(state.elec,s.eTariff,s.eFixed);
-  const wM=calcMTD(state.water,s.wTariff,s.wFixed);
+
+  const eM=calcMonth(state.elec,u=>calcElecCost(u));
+  const wM=calcMonth(state.water,u=>calcWaterCost(u));
   document.getElementById('d-e-usage').textContent=eM.usage>0?eM.usage.toFixed(1)+' kWh':'—';
   document.getElementById('d-e-cost').textContent=eM.cost>0?fmtR(eM.cost):'no data';
   document.getElementById('d-w-usage').textContent=wM.usage>0?wM.usage.toFixed(1)+' kL':'—';
@@ -460,21 +542,46 @@ function renderDashboard(){
 
   const cd={responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9}}},y:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9}},beginAtZero:true}}};
 
-  const eD=getDailyUsage(state.elec);
+  // Daily charts filtered to selected month
+  const filterMonth=(arr)=>{
+    if(arr.length<2)return[];
+    const sorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));
+    const dayMap={};
+    for(let i=1;i<sorted.length;i++){
+      const u=sorted[i-1].reading-sorted[i].reading;
+      if(u<=0)continue;
+      const from=new Date(sorted[i-1].date+'T00:00:00');
+      const to=new Date(sorted[i].date+'T00:00:00');
+      const numDays=Math.round((to-from)/(1000*60*60*24));
+      if(numDays<=0)continue;
+      const dailyAvg=u/numDays;
+      for(let d=0;d<numDays;d++){
+        const day=new Date(from);
+        day.setDate(day.getDate()+d);
+        const key=day.toISOString().split('T')[0];
+        if(!key.startsWith(ms))continue;
+        dayMap[key]=(dayMap[key]||0)+dailyAvg;
+      }
+    }
+    return Object.entries(dayMap).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,usage])=>({date,usage}));
+  };
+
+  const eD=filterMonth(state.elec);
   if(charts.elec)charts.elec.destroy();
   charts.elec=new Chart(document.getElementById('chartElec'),{type:'bar',data:{labels:eD.map(d=>fmtShort(d.date)),datasets:[{data:eD.map(d=>d.usage.toFixed(2)),backgroundColor:'rgba(245,200,66,0.7)',borderRadius:4}]},options:{...cd}});
 
-  const wD=getDailyUsage(state.water);
+  const wD=filterMonth(state.water);
   if(charts.water)charts.water.destroy();
   charts.water=new Chart(document.getElementById('chartWater'),{type:'bar',data:{labels:wD.map(d=>fmtShort(d.date)),datasets:[{data:wD.map(d=>d.usage.toFixed(3)),backgroundColor:'rgba(66,184,245,0.7)',borderRadius:4}]},options:{...cd}});
 
+  // Monthly overview charts (all time)
   const eMonthly=getMonthlyUsage(state.elec);
   const wMonthly=getMonthlyUsage(state.water);
   const allMonths=[...new Set([...eMonthly.map(m=>m[0]),...wMonthly.map(m=>m[0])])].sort();
   const eMap=Object.fromEntries(eMonthly);
   const wMap=Object.fromEntries(wMonthly);
   if(charts.cost)charts.cost.destroy();
-  charts.cost=new Chart(document.getElementById('chartCost'),{type:'bar',data:{labels:allMonths.map(fmtMonth),datasets:[{label:'Electricity',data:allMonths.map(m=>(((eMap[m]||0)*s.eTariff)+s.eFixed).toFixed(2)),backgroundColor:'rgba(245,200,66,0.7)',borderRadius:4},{label:'Water',data:allMonths.map(m=>(((wMap[m]||0)*s.wTariff)+s.wFixed).toFixed(2)),backgroundColor:'rgba(66,184,245,0.7)',borderRadius:4}]},options:{responsive:true,plugins:{legend:{labels:{color:'#6b7490',font:{family:'Space Mono',size:9}}}},scales:{x:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9}}},y:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9},callback:v=>'R'+v},beginAtZero:true}}}});
+  charts.cost=new Chart(document.getElementById('chartCost'),{type:'bar',data:{labels:allMonths.map(fmtMonth),datasets:[{label:'Electricity',data:allMonths.map(m=>calcElecCost(eMap[m]||0).toFixed(2)),backgroundColor:'rgba(245,200,66,0.7)',borderRadius:4},{label:'Water',data:allMonths.map(m=>calcWaterCost(wMap[m]||0).toFixed(2)),backgroundColor:'rgba(66,184,245,0.7)',borderRadius:4}]},options:{responsive:true,plugins:{legend:{labels:{color:'#6b7490',font:{family:'Space Mono',size:9}}}},scales:{x:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9}}},y:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9},callback:v=>'R'+v},beginAtZero:true}}}});
 
   const payMonths={};
   state.payments.forEach(p=>{const m=p.date.slice(0,7);if(!payMonths[m])payMonths[m]={elec:0,water:0};if(p.type==='elec')payMonths[m].elec+=p.total;else payMonths[m].water+=p.total;});
