@@ -719,8 +719,10 @@ function renderDashboard(){
   const wDailyAvg=getDailyAvg(state.water);
 
   // Daily cost in R — cost of one day's average usage
-  const eDailyCost=eDailyAvg>0?calcElecCost(eDailyAvg):0;
-  const wDailyCost=wDailyAvg>0?calcWaterCost(wDailyAvg):0;
+  // Daily cost = monthly cost of (dailyAvg*30) divided by 30
+  // This correctly amortises fixed monthly charges over 30 days
+  const eDailyCost=eDailyAvg>0?calcElecCost(eDailyAvg*30)/30:0;
+  const wDailyCost=wDailyAvg>0?calcWaterCost(wDailyAvg*30)/30:0;
   document.getElementById('d-e-daily').textContent=eDailyAvg>0?eDailyAvg.toFixed(2):'—';
   document.getElementById('d-w-daily').textContent=wDailyAvg>0?wDailyAvg.toFixed(3):'—';
   document.getElementById('d-e-daily-cost').textContent=eDailyCost>0?'~'+fmtR(eDailyCost)+'/day':'kWh/day';
