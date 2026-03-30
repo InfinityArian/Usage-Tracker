@@ -417,15 +417,24 @@ function getDailyUsage(arr,days=60){
   if(arr.length<2)return[];
   const sorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));
   const cutoff=new Date();cutoff.setDate(cutoff.getDate()-days);
-  const result=[];
+  const dayMap={};
   for(let i=1;i<sorted.length;i++){
-    const d=new Date(sorted[i].date+'T00:00:00');
-    if(d<cutoff)continue;
     const u=sorted[i-1].reading-sorted[i].reading;
     if(u<=0)continue;
-    result.push({date:sorted[i].date,usage:u});
+    const from=new Date(sorted[i-1].date+'T00:00:00');
+    const to=new Date(sorted[i].date+'T00:00:00');
+    const numDays=Math.round((to-from)/(1000*60*60*24));
+    if(numDays<=0)continue;
+    const dailyAvg=u/numDays;
+    for(let d=0;d<numDays;d++){
+      const day=new Date(from);
+      day.setDate(day.getDate()+d);
+      if(day<cutoff)continue;
+      const key=day.toISOString().split('T')[0];
+      dayMap[key]=(dayMap[key]||0)+dailyAvg;
+    }
   }
-  return result;
+  return Object.entries(dayMap).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,usage])=>({date,usage}));
 }
 
 function fmtMonth(m){const[y,mo]=m.split('-');return new Date(parseInt(y),parseInt(mo)-1,1).toLocaleString('en-ZA',{month:'short',year:'2-digit'});}
