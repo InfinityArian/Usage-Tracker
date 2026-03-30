@@ -234,9 +234,36 @@
       Loading...
     </div>
   </div>
+  <div class="settings-card">
+    <div class="settings-title">☁️ GitHub Backup</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
+      Your data auto-syncs to GitHub on every save. Survives browser clears and works across devices.
+    </div>
+    <div class="form-group">
+      <label>GitHub Username</label>
+      <input type="text" inputmode="text" placeholder="e.g. InfinityArian" id="gh-user"/>
+    </div>
+    <div class="form-group">
+      <label>Repository Name</label>
+      <input type="text" inputmode="text" placeholder="e.g. Usage-Tracker" id="gh-repo"/>
+    </div>
+    <div class="form-group">
+      <label>Personal Access Token</label>
+      <input type="password" placeholder="ghp_xxxxxxxxxxxx" id="gh-token"/>
+    </div>
+    <div id="gh-status" style="font-size:12px;margin-bottom:12px;font-family:'Space Mono',monospace;min-height:18px;"></div>
+    <button class="btn btn-e" onclick="saveGitHubConfig()" style="margin-bottom:8px;">Save & Test Connection</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
+      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:11px;" onclick="backupToGitHub(true)">☁ Backup Now</button>
+      <button class="btn" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:11px;" onclick="restoreFromGitHub()">⬇ Restore</button>
+    </div>
+    <p style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5;">
+      Create a token at github.com → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token → select <strong>repo</strong> scope only.
+    </p>
+  </div>
   <hr class="divider"/>
   <button class="btn" style="background:var(--surface2);color:var(--danger);border:1px solid var(--danger);margin-top:8px;" onclick="clearData()">🗑 Clear All Data</button>
-  <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px;">All data stored locally on your device.<br/>Tariffs update automatically when Rubicon rates change — just update the code.</p>
+  <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px;">All data stored locally on your device.<br/>GitHub backup syncs automatically on every save.</p>
 </div>
 
 <div class="bottom-nav">
@@ -250,7 +277,7 @@
 <script>
 let state = {
   elec:[], water:[], payments:[],
-  settings:{people:2,eBudget:800,wBudget:450}
+  settings:{people:2,eBudget:800,wBudget:450},github:{user:'',repo:'',token:''}
 };
 let charts = {};
 
@@ -262,7 +289,113 @@ function load() {
   [...state.elec,...state.water].forEach(r=>{if(!r.time)r.time='';});
   applySettings();
 }
-function save() { localStorage.setItem('usageTrackerV2',JSON.stringify(state)); }
+
+// ── GITHUB SYNC ──────────────────────────────────────────────────────────────
+function ghHeaders(){
+  const token=state.github?.token||'';
+  return {'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};
+}
+
+function ghApiUrl(){
+  const {user,repo}=state.github||{};
+  return `https://api.github.com/repos/${user}/${repo}/contents/data.json`;
+}
+
+function setGhStatus(msg, color='var(--muted)'){
+  const el=document.getElementById('gh-status');
+  if(el) el.innerHTML=`<span style="color:${color}">${msg}</span>`;
+}
+
+async function backupToGitHub(showStatus=true){
+  const gh=state.github||{};
+  if(!gh.user||!gh.repo||!gh.token){
+    if(showStatus) setGhStatus('⚠ GitHub not configured','var(--danger)');
+    return;
+  }
+  if(showStatus) setGhStatus('Syncing...','var(--muted)');
+  try{
+    // Get current file SHA (needed for update)
+    const existing=await fetch(ghApiUrl(),{headers:ghHeaders()});
+    let sha=null;
+    if(existing.ok){const j=await existing.json();sha=j.sha;}
+
+    // Prepare data — exclude token from backup for security
+    const backupData={elec:state.elec,water:state.water,payments:state.payments,settings:state.settings};
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(backupData,null,2))));
+
+    const body={message:`UsageTracker backup ${new Date().toISOString().slice(0,16)}`,content};
+    if(sha) body.sha=sha;
+
+    const res=await fetch(ghApiUrl(),{method:'PUT',headers:ghHeaders(),body:JSON.stringify(body)});
+    if(res.ok){
+      const now=new Date().toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'});
+      if(showStatus) setGhStatus(`✓ Backed up at ${now}`,'var(--green)');
+      localStorage.setItem('ghLastBackup',new Date().toISOString());
+    } else {
+      const err=await res.json();
+      if(showStatus) setGhStatus(`✗ Failed: ${err.message||res.status}`,'var(--danger)');
+    }
+  } catch(e){
+    if(showStatus) setGhStatus(`✗ Error: ${e.message}`,'var(--danger)');
+  }
+}
+
+async function restoreFromGitHub(){
+  const gh=state.github||{};
+  if(!gh.user||!gh.repo||!gh.token){setGhStatus('⚠ GitHub not configured','var(--danger)');return;}
+  if(!confirm('Restore data from GitHub? This will overwrite your current local data.')) return;
+  setGhStatus('Restoring...','var(--muted)');
+  try{
+    const res=await fetch(ghApiUrl(),{headers:ghHeaders()});
+    if(!res.ok){setGhStatus(`✗ No backup found (${res.status})`,'var(--danger)');return;}
+    const j=await res.json();
+    const decoded=decodeURIComponent(escape(atob(j.content.replace(/\n/g,''))));
+    const restored=JSON.parse(decoded);
+    // Merge restored data but keep github config
+    state.elec=restored.elec||[];
+    state.water=restored.water||[];
+    state.payments=restored.payments||[];
+    state.settings={...restored.settings,...{people:restored.settings?.people||2,eBudget:restored.settings?.eBudget||800,wBudget:restored.settings?.wBudget||450}};
+    [...state.elec,...state.water].forEach(r=>{if(!r.time)r.time='';});
+    localStorage.setItem('usageTrackerV2',JSON.stringify(state));
+    setGhStatus('✓ Restored successfully!','var(--green)');
+    applySettings();
+    renderReadings('elec');renderReadings('water');renderPayments();
+    updateSummary('elec');updateSummary('water');updatePaymentSummary();
+    alert('✅ Data restored from GitHub!');
+  } catch(e){
+    setGhStatus(`✗ Error: ${e.message}`,'var(--danger)');
+  }
+}
+
+async function saveGitHubConfig(){
+  const user=document.getElementById('gh-user').value.trim();
+  const repo=document.getElementById('gh-repo').value.trim();
+  const token=document.getElementById('gh-token').value.trim();
+  if(!user||!repo||!token){setGhStatus('⚠ Fill in all 3 fields','var(--danger)');return;}
+  state.github={user,repo,token};
+  localStorage.setItem('usageTrackerV2',JSON.stringify(state));
+  setGhStatus('Testing connection...','var(--muted)');
+  // Test by fetching repo info
+  try{
+    const res=await fetch(`https://api.github.com/repos/${user}/${repo}`,{headers:ghHeaders()});
+    if(res.ok){
+      setGhStatus('✓ Connected! Auto-backup enabled.','var(--green)');
+      backupToGitHub(false); // silent initial backup
+    } else {
+      const err=await res.json();
+      setGhStatus(`✗ ${err.message||'Check username/repo/token'}`,'var(--danger)');
+    }
+  } catch(e){
+    setGhStatus(`✗ Network error: ${e.message}`,'var(--danger)');
+  }
+}
+function save() {
+  localStorage.setItem('usageTrackerV2',JSON.stringify(state));
+  // Auto-sync to GitHub if configured (non-blocking)
+  const gh=state.github||{};
+  if(gh.user&&gh.repo&&gh.token) backupToGitHub(false);
+}
 
 function fmtDateTime(date,time) {
   const d = new Date(date+'T00:00:00');
@@ -814,6 +947,18 @@ function applySettings(){
   document.getElementById('s-people').value=s.people||2;
   document.getElementById('s-ebudget').value=s.eBudget||800;
   document.getElementById('s-wbudget').value=s.wBudget||450;
+  // Populate GitHub fields
+  const gh=state.github||{};
+  const guEl=document.getElementById('gh-user');
+  const grEl=document.getElementById('gh-repo');
+  if(guEl) guEl.value=gh.user||'';
+  if(grEl) grEl.value=gh.repo||'';
+  // Don't pre-fill token for security — show status instead
+  const lastBackup=localStorage.getItem('ghLastBackup');
+  if(gh.user&&gh.repo&&gh.token){
+    const ago=lastBackup?new Date(lastBackup).toLocaleString('en-ZA',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'never';
+    setGhStatus(`✓ Connected · Last backup: ${ago}`,'var(--green)');
+  }
   // Update rate accuracy info
   const el=document.getElementById('rate-accuracy-info');
   if(!el)return;
@@ -872,7 +1017,18 @@ function saveSettings(){
   state.settings={people,eBudget,wBudget};
   save();updateSummary('elec');updateSummary('water');alert('✅ Settings saved!');
 }
-function clearData(){if(confirm('Delete ALL data? This cannot be undone.')){state.elec=[];state.water=[];state.payments=[];save();renderReadings('elec');renderReadings('water');renderPayments();updateSummary('elec');updateSummary('water');updatePaymentSummary();alert('Data cleared.');}}
+function clearData(){
+  if(confirm('Delete ALL data? This cannot be undone.')){
+    state.elec=[];state.water=[];state.payments=[];
+    localStorage.setItem('usageTrackerV2',JSON.stringify(state)); // save without triggering backup
+    renderReadings('elec');renderReadings('water');renderPayments();
+    updateSummary('elec');updateSummary('water');updatePaymentSummary();
+    if(state.github?.user&&state.github?.repo&&state.github?.token){
+      if(confirm('Also delete the GitHub backup file?')) backupToGitHub(true);
+    }
+    alert('Data cleared.');
+  }
+}
 
 document.addEventListener('DOMContentLoaded',()=>{
   load();
