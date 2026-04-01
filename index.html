@@ -25,13 +25,7 @@
   .header-title{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
   .header-date{font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;}
 
-  .tabs{display:flex;padding:10px 14px;gap:7px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
-  .tabs::-webkit-scrollbar{display:none;}
-  .tab{flex-shrink:0;padding:7px 13px;border-radius:100px;font-size:12px;font-weight:500;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;}
-  .tab.active-e{background:var(--accent-e);color:#0d0f14;border-color:var(--accent-e);font-weight:700;}
-  .tab.active-w{background:var(--accent-w);color:#0d0f14;border-color:var(--accent-w);font-weight:700;}
-  .tab.active-p{background:var(--accent-p);color:#0d0f14;border-color:var(--accent-p);font-weight:700;}
-  .tab.active-d{background:var(--surface2);color:var(--text);border-color:var(--border);}
+
 
   .page{display:none;padding:20px;padding-bottom:calc(var(--safe-bottom) + 80px);}
   .page.active{display:block;}
@@ -86,7 +80,7 @@
   canvas{max-width:100%;}
 
   .bottom-nav{position:fixed;bottom:0;left:0;right:0;padding:10px 4px calc(var(--safe-bottom) + 10px);background:rgba(13,15,20,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;justify-content:space-around;z-index:100;}
-  .nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);font-size:9px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;padding:5px 6px;border-radius:10px;transition:color .2s;}
+  .nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);font-size:10px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;padding:5px 6px;border-radius:10px;transition:color .2s;}
   .nav-btn .icon{font-size:18px;line-height:1;}
   .nav-btn.active-e{color:var(--accent-e);}
   .nav-btn.active-w{color:var(--accent-w);}
@@ -107,19 +101,13 @@
   <div class="header-date" id="headerDate"></div>
 </div>
 
-<div class="tabs">
-  <button class="tab active-e" onclick="showPage('elec')">⚡ Electricity</button>
-  <button class="tab" onclick="showPage('water')">💧 Water</button>
-  <button class="tab" onclick="showPage('payments')">💳 Payments</button>
-  <button class="tab" onclick="showPage('dash')">📊 Dashboard</button>
-  <button class="tab" onclick="showPage('settings')">⚙️ Settings</button>
-</div>
+
 
 <!-- ELECTRICITY -->
 <div class="page active" id="page-elec">
   <div class="summary-grid">
-    <div class="card"><div class="card-label">This Month</div><div class="card-value e-color" id="e-month-usage">—</div><div class="card-sub">kWh used this month</div></div>
-    <div class="card"><div class="card-label">Est. Cost</div><div class="card-value e-color" id="e-month-cost">—</div><div class="card-sub">this month</div></div>
+    <div class="card"><div class="card-label">MTD Usage</div><div class="card-value e-color" id="e-month-usage">—</div><div class="card-sub" id="e-days-left">kWh used so far</div></div>
+    <div class="card"><div class="card-label">Monthly Projected</div><div class="card-value e-color" id="e-month-cost">—</div><div class="card-sub" id="e-proj-sub">based on daily avg</div></div>
   </div>
   <div class="section-title">Log a Reading</div>
   <div class="form-row">
@@ -135,8 +123,8 @@
 <!-- WATER -->
 <div class="page" id="page-water">
   <div class="summary-grid">
-    <div class="card"><div class="card-label">This Month</div><div class="card-value w-color" id="w-month-usage">—</div><div class="card-sub">kL used this month</div></div>
-    <div class="card"><div class="card-label">Est. Cost</div><div class="card-value w-color" id="w-month-cost">—</div><div class="card-sub">this month</div></div>
+    <div class="card"><div class="card-label">MTD Usage</div><div class="card-value w-color" id="w-month-usage">—</div><div class="card-sub" id="w-days-left">kL used so far</div></div>
+    <div class="card"><div class="card-label">Monthly Projected</div><div class="card-value w-color" id="w-month-cost">—</div><div class="card-sub" id="w-proj-sub">based on daily avg</div></div>
   </div>
   <div class="section-title">Log a Reading</div>
   <div class="form-row">
@@ -407,11 +395,7 @@ function fmtR(v) { return 'R '+Number(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d)
 function showPage(id) {
   ['elec','water','payments','dash','settings'].forEach(p=>document.getElementById('page-'+p).classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  document.querySelectorAll('.tab').forEach(t=>t.className='tab');
-  const tabs=document.querySelectorAll('.tab');
-  const map={elec:0,water:1,payments:2,dash:3,settings:4};
   const cls=id==='elec'?'active-e':id==='water'?'active-w':id==='payments'?'active-p':'active-d';
-  tabs[map[id]].classList.add(cls);
   document.querySelectorAll('.nav-btn').forEach(b=>b.className='nav-btn');
   document.getElementById('nav-'+id).className='nav-btn '+cls;
   if(id==='dash') renderDashboard();
@@ -501,13 +485,24 @@ function updateSummary(type) {
   const currentBalance=sorted.length>0?sorted[sorted.length-1].reading:0;
   const daysLeft=dailyAvg>0?Math.floor(currentBalance/dailyAvg):0;
 
+  // MTD usage card
+  const unit=isE?'kWh':'kL';
   document.getElementById(isE?'e-month-usage':'w-month-usage').textContent=mtd>0?mtd.toFixed(1):'—';
-  document.getElementById(isE?'e-month-cost':'w-month-cost').textContent=mtd>0?fmtR(mtdCost):'—';
+  const daysLeftEl=document.getElementById(isE?'e-days-left':'w-days-left');
+  if(daysLeftEl){
+    if(mtd>0&&daysLeft>0) daysLeftEl.textContent=`${unit} used · ${daysLeft} days left`;
+    else if(mtd>0) daysLeftEl.textContent=`${unit} used this month`;
+    else daysLeftEl.textContent=`no readings this month`;
+  }
 
-  // Update days remaining sub-label
-  const subEl=document.getElementById(isE?'e-month-cost':'w-month-cost');
-  if(subEl&&daysLeft>0){
-    subEl.parentElement.querySelector('.card-sub').textContent=daysLeft+' days left at current rate';
+  // Projected cost card — always shows full month projection based on daily avg
+  const projectedKwh=dailyAvg*30;
+  const projectedCost=projectedKwh>0?costFn(projectedKwh):0;
+  document.getElementById(isE?'e-month-cost':'w-month-cost').textContent=projectedCost>0?fmtR(projectedCost):'—';
+  const projSubEl=document.getElementById(isE?'e-proj-sub':'w-proj-sub');
+  if(projSubEl){
+    if(projectedKwh>0) projSubEl.textContent=`${projectedKwh.toFixed(1)} ${unit}/month est.`;
+    else projSubEl.textContent='add more readings';
   }
 }
 
