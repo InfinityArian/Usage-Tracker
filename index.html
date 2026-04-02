@@ -602,10 +602,10 @@ function getDailyUsage(arr,days=60){
     if(u<=0)continue;
     const from=new Date(sorted[i-1].date+'T00:00:00');
     const to=new Date(sorted[i].date+'T00:00:00');
-    const numDays=Math.round((to-from)/(1000*60*60*24));
-    if(numDays<=0)continue;
+    const numDays=Math.max(1,Math.round((to-from)/(1000*60*60*24)));
     const dailyAvg=u/numDays;
-    for(let d=0;d<numDays;d++){
+    // d starts at 1 so usage is attributed to the days UP TO the reading date
+    for(let d=1;d<=numDays;d++){
       const day=new Date(from);
       day.setDate(day.getDate()+d);
       if(day<cutoff)continue;
@@ -899,10 +899,10 @@ function renderDashboard(){
       if(u<=0)continue;
       const from=new Date(sorted[i-1].date+'T00:00:00');
       const to=new Date(sorted[i].date+'T00:00:00');
-      const numDays=Math.round((to-from)/(1000*60*60*24));
-      if(numDays<=0)continue;
+      const numDays=Math.max(1,Math.round((to-from)/(1000*60*60*24)));
       const dailyAvg=u/numDays;
-      for(let d=0;d<numDays;d++){
+      // Spread usage across days d+1 through numDays (from day after prev reading to reading date)
+      for(let d=1;d<=numDays;d++){
         const day=new Date(from);
         day.setDate(day.getDate()+d);
         const key=day.toISOString().split('T')[0];
