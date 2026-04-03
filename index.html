@@ -624,7 +624,7 @@ function getMonthlyUsage(arr){
       const segEnd=dayEnd<t2?dayEnd:t2;
       const segHours=(segEnd-cursor)/(1000*60*60);
       const segUsage=hourlyRate*segHours;
-      const m=cursor.toISOString().slice(0,7);
+      const m=`${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}`;
       months[m]=(months[m]||0)+segUsage;
       cursor=new Date(dayEnd.getTime()+1);
     }
@@ -663,7 +663,7 @@ function getDailyUsage(arr,days=60){
       const segEnd=dayEnd<t2?dayEnd:t2;
       const segHours=(segEnd-cursor)/(1000*60*60);
       const segUsage=hourlyRate*segHours;
-      const key=cursor.toISOString().split('T')[0];
+      const key=`${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}-${String(cursor.getDate()).padStart(2,'0')}`;
       if(cursor>=cutoff){
         dayMap[key]=(dayMap[key]||0)+segUsage;
       }
@@ -968,7 +968,7 @@ function renderDashboard(){
         const segEnd=dayEnd<t2?dayEnd:t2;
         const segHours=(segEnd-cursor)/(1000*60*60);
         const segUsage=hourlyRate*segHours;
-        const key=cursor.toISOString().split('T')[0];
+        const key=`${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}-${String(cursor.getDate()).padStart(2,'0')}`;
         if(key.startsWith(ms)){
           dayMap[key]=(dayMap[key]||0)+segUsage;
         }
