@@ -244,6 +244,17 @@
       "units": 263.6,
       "arrears": 0,
       "note": ""
+    },
+    {
+      "date": "2026-04-03",
+      "time": "16:54",
+      "type": "water",
+      "total": 500,
+      "vat": 65.21,
+      "service": 247.74,
+      "units": 5.3,
+      "arrears": 0,
+      "note": ""
     }
   ],
   "settings": {
