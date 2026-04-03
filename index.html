@@ -454,21 +454,45 @@ function deleteReading(type,idx){
   save();renderReadings(type);updateSummary(type);
 }
 
+// Get exact timestamp from a reading (uses time if available, else midnight)
+function readingTimestamp(r){
+  const timeStr=r.time&&r.time.trim()?r.time:'00:00';
+  return new Date(r.date+'T'+timeStr+':00');
+}
+
+// getDailyAvg: hourly-based method
+// For each consecutive reading pair:
+//   1. Calculate exact hours between readings
+//   2. Derive kWh/hour rate
+//   3. Convert to 24h equivalent (kWh/day)
+// Average all pair daily-equivalents weighted by hours (longer periods = more reliable)
 function getDailyAvg(arr){
   if(arr.length<2)return 0;
-  const sorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));
-  const first=new Date(sorted[0].date+'T00:00:00');
-  const last=new Date(sorted[sorted.length-1].date+'T00:00:00');
-  const days=Math.max(1,Math.round((last-first)/(1000*60*60*24)));
-  const totalUsed=sorted[0].reading-sorted[sorted.length-1].reading;
-  return totalUsed>0?totalUsed/days:0;
+  const sorted=[...arr].sort((a,b)=>{
+    const ta=readingTimestamp(a), tb=readingTimestamp(b);
+    return ta-tb;
+  });
+  let totalWeightedRate=0, totalHours=0;
+  for(let i=1;i<sorted.length;i++){
+    const usage=sorted[i-1].reading-sorted[i].reading;
+    if(usage<=0)continue;
+    const t1=readingTimestamp(sorted[i-1]);
+    const t2=readingTimestamp(sorted[i]);
+    const hours=Math.max(0.25,(t2-t1)/(1000*60*60)); // minimum 15 min to avoid division issues
+    const hourlyRate=usage/hours;
+    const dailyEquiv=hourlyRate*24;
+    // Weight by hours — longer periods are more reliable estimates
+    totalWeightedRate+=dailyEquiv*hours;
+    totalHours+=hours;
+  }
+  return totalHours>0?totalWeightedRate/totalHours:0;
 }
 
 function updateSummary(type) {
   const isE=type==='elec';
   const arr=isE?state.elec:state.water;
   const ms=new Date().toISOString().slice(0,7);
-  const sorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));
+  const sorted=[...arr].sort((a,b)=>readingTimestamp(a)-readingTimestamp(b));
 
   // MTD usage
   const fi=sorted.findIndex(r=>r.date.startsWith(ms));
@@ -579,38 +603,72 @@ function updatePaymentSummary(){
   document.getElementById('p-w-total').textContent=wT>0?fmtR(wT):'—';
 }
 
+// getMonthlyUsage: uses hourly splitting so usage spanning month boundaries
+// is correctly attributed to each month proportionally
 function getMonthlyUsage(arr){
   if(arr.length<2)return[];
-  const sorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));
+  const sorted=[...arr].sort((a,b)=>readingTimestamp(a)-readingTimestamp(b));
   const months={};
   for(let i=1;i<sorted.length;i++){
-    const u=sorted[i-1].reading-sorted[i].reading;
-    if(u<=0)continue;
-    const m=sorted[i].date.slice(0,7);
-    months[m]=(months[m]||0)+u;
+    const usage=sorted[i-1].reading-sorted[i].reading;
+    if(usage<=0)continue;
+    const t1=readingTimestamp(sorted[i-1]);
+    const t2=readingTimestamp(sorted[i]);
+    const totalMs=t2-t1;
+    if(totalMs<=0)continue;
+    const hourlyRate=usage/(totalMs/(1000*60*60));
+    let cursor=new Date(t1);
+    while(cursor<t2){
+      const dayEnd=new Date(cursor);
+      dayEnd.setHours(23,59,59,999);
+      const segEnd=dayEnd<t2?dayEnd:t2;
+      const segHours=(segEnd-cursor)/(1000*60*60);
+      const segUsage=hourlyRate*segHours;
+      const m=cursor.toISOString().slice(0,7);
+      months[m]=(months[m]||0)+segUsage;
+      cursor=new Date(dayEnd.getTime()+1);
+    }
   }
   return Object.entries(months).sort((a,b)=>a[0].localeCompare(b[0]));
 }
 
+// getDailyUsage: splits usage between readings proportionally across calendar days
+// Uses exact timestamps so a reading at 12:00 today → 09:00 tomorrow correctly
+// attributes 12h to today and 9h to tomorrow (not the full amount to one day)
 function getDailyUsage(arr,days=60){
   if(arr.length<2)return[];
-  const sorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));
+  const sorted=[...arr].sort((a,b)=>readingTimestamp(a)-readingTimestamp(b));
   const cutoff=new Date();cutoff.setDate(cutoff.getDate()-days);
   const dayMap={};
+
   for(let i=1;i<sorted.length;i++){
-    const u=sorted[i-1].reading-sorted[i].reading;
-    if(u<=0)continue;
-    const from=new Date(sorted[i-1].date+'T00:00:00');
-    const to=new Date(sorted[i].date+'T00:00:00');
-    const numDays=Math.max(1,Math.round((to-from)/(1000*60*60*24)));
-    const dailyAvg=u/numDays;
-    // d starts at 1 so usage is attributed to the days UP TO the reading date
-    for(let d=1;d<=numDays;d++){
-      const day=new Date(from);
-      day.setDate(day.getDate()+d);
-      if(day<cutoff)continue;
-      const key=day.toISOString().split('T')[0];
-      dayMap[key]=(dayMap[key]||0)+dailyAvg;
+    const usage=sorted[i-1].reading-sorted[i].reading;
+    if(usage<=0)continue;
+    const t1=readingTimestamp(sorted[i-1]);
+    const t2=readingTimestamp(sorted[i]);
+    const totalMs=t2-t1;
+    if(totalMs<=0)continue;
+    const hourlyRate=usage/(totalMs/(1000*60*60));
+
+    // Walk through each calendar day between t1 and t2
+    // For each day, calculate how many hours of the reading period fall within it
+    const dayStart=new Date(t1);
+    dayStart.setHours(0,0,0,0);
+
+    let cursor=new Date(t1);
+    while(cursor<t2){
+      // End of current calendar day
+      const dayEnd=new Date(cursor);
+      dayEnd.setHours(23,59,59,999);
+      const segEnd=dayEnd<t2?dayEnd:t2;
+      const segHours=(segEnd-cursor)/(1000*60*60);
+      const segUsage=hourlyRate*segHours;
+      const key=cursor.toISOString().split('T')[0];
+      if(cursor>=cutoff){
+        dayMap[key]=(dayMap[key]||0)+segUsage;
+      }
+      // Move to start of next day
+      cursor=new Date(dayEnd.getTime()+1);
     }
   }
   return Object.entries(dayMap).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,usage])=>({date,usage}));
@@ -890,24 +948,31 @@ function renderDashboard(){
   const cd={responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9}}},y:{grid:{color:'#2a3045'},ticks:{color:'#6b7490',font:{family:'Space Mono',size:9}},beginAtZero:true}}};
 
   // Daily charts filtered to selected month
+  // filterMonth: same hourly-split logic as getDailyUsage but filtered to selected month
   const filterMonth=(arr)=>{
     if(arr.length<2)return[];
-    const sorted=[...arr].sort((a,b)=>a.date.localeCompare(b.date));
+    const sorted=[...arr].sort((a,b)=>readingTimestamp(a)-readingTimestamp(b));
     const dayMap={};
     for(let i=1;i<sorted.length;i++){
-      const u=sorted[i-1].reading-sorted[i].reading;
-      if(u<=0)continue;
-      const from=new Date(sorted[i-1].date+'T00:00:00');
-      const to=new Date(sorted[i].date+'T00:00:00');
-      const numDays=Math.max(1,Math.round((to-from)/(1000*60*60*24)));
-      const dailyAvg=u/numDays;
-      // Spread usage across days d+1 through numDays (from day after prev reading to reading date)
-      for(let d=1;d<=numDays;d++){
-        const day=new Date(from);
-        day.setDate(day.getDate()+d);
-        const key=day.toISOString().split('T')[0];
-        if(!key.startsWith(ms))continue;
-        dayMap[key]=(dayMap[key]||0)+dailyAvg;
+      const usage=sorted[i-1].reading-sorted[i].reading;
+      if(usage<=0)continue;
+      const t1=readingTimestamp(sorted[i-1]);
+      const t2=readingTimestamp(sorted[i]);
+      const totalMs=t2-t1;
+      if(totalMs<=0)continue;
+      const hourlyRate=usage/(totalMs/(1000*60*60));
+      let cursor=new Date(t1);
+      while(cursor<t2){
+        const dayEnd=new Date(cursor);
+        dayEnd.setHours(23,59,59,999);
+        const segEnd=dayEnd<t2?dayEnd:t2;
+        const segHours=(segEnd-cursor)/(1000*60*60);
+        const segUsage=hourlyRate*segHours;
+        const key=cursor.toISOString().split('T')[0];
+        if(key.startsWith(ms)){
+          dayMap[key]=(dayMap[key]||0)+segUsage;
+        }
+        cursor=new Date(dayEnd.getTime()+1);
       }
     }
     return Object.entries(dayMap).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,usage])=>({date,usage}));
