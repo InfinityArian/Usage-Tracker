@@ -191,17 +191,6 @@
   ],
   "payments": [
     {
-      "date": "2026-02-24",
-      "time": "",
-      "type": "elec",
-      "total": 1565.22,
-      "vat": 234.78,
-      "service": 0,
-      "units": 442.7,
-      "arrears": 0,
-      "note": "Token: 0338-5274-9616-0620-8431"
-    },
-    {
       "date": "2026-02-22",
       "time": "",
       "type": "water",
@@ -211,6 +200,17 @@
       "units": 2.2,
       "arrears": 167.3,
       "note": "Token: 0454-8070-7211-9223-8781"
+    },
+    {
+      "date": "2026-02-24",
+      "time": "",
+      "type": "elec",
+      "total": 1565.22,
+      "vat": 234.78,
+      "service": 0,
+      "units": 442.7,
+      "arrears": 0,
+      "note": "Token: 0338-5274-9616-0620-8431"
     },
     {
       "date": "2026-02-24",
@@ -233,6 +233,17 @@
       "units": 9.6,
       "arrears": 0,
       "note": "Token: 1683-9308-5232-3368-5347"
+    },
+    {
+      "date": "2026-04-03",
+      "time": "16:54",
+      "type": "elec",
+      "total": 1100,
+      "vat": 143.47,
+      "service": 0,
+      "units": 263.6,
+      "arrears": 0,
+      "note": ""
     }
   ],
   "settings": {
