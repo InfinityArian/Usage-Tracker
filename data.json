@@ -2,12 +2,6 @@
   "elec": [
     {
       "date": "2026-03-23",
-      "time": "06:45",
-      "reading": 272.99,
-      "note": "Morning"
-    },
-    {
-      "date": "2026-03-23",
       "time": "23:30",
       "reading": 269.38,
       "note": "Night"
