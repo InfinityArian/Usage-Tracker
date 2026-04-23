@@ -75,12 +75,6 @@
   ],
   "water": [
     {
-      "date": "2026-03-22",
-      "time": "",
-      "reading": 7.91,
-      "note": "Morning"
-    },
-    {
       "date": "2026-03-23",
       "time": "23:10",
       "reading": 7.61,
