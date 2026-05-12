@@ -103,6 +103,17 @@
       "units": 6.1,
       "arrears": 0,
       "note": ""
+    },
+    {
+      "date": "2026-05-12",
+      "time": "09:12",
+      "type": "elec",
+      "total": 1000,
+      "vat": 130.43,
+      "service": 0,
+      "units": 238,
+      "arrears": 0,
+      "note": ""
     }
   ],
   "settings": {
