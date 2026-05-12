@@ -83,17 +83,6 @@
   ],
   "payments": [
     {
-      "date": "2026-02-22",
-      "time": "",
-      "type": "water",
-      "total": 500,
-      "vat": 43.39,
-      "service": 214.27,
-      "units": 2.2,
-      "arrears": 167.3,
-      "note": "Token: 0454-8070-7211-9223-8781"
-    },
-    {
       "date": "2026-02-24",
       "time": "",
       "type": "elec",
