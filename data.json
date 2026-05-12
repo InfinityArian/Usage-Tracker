@@ -83,17 +83,6 @@
   ],
   "payments": [
     {
-      "date": "2026-02-24",
-      "time": "",
-      "type": "water",
-      "total": 499.99999999999994,
-      "vat": 65.21,
-      "service": 29.59,
-      "units": 8.7,
-      "arrears": 0,
-      "note": "Token: 3372-9759-1277-4573-4107"
-    },
-    {
       "date": "2026-03-10",
       "time": "",
       "type": "water",
